@@ -8,7 +8,8 @@ import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ClockBackupService(
+/** Android storage adapter for exporting and atomically importing Clock data. */
+internal class ClockBackupService(
     private val context: Context,
     private val database: ClockDatabase,
 ) {

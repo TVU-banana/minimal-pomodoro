@@ -1,17 +1,24 @@
 package com.akira.clock.timer
 
-import java.util.UUID
-
-fun reduce(
+/**
+ * Calculates the next timer snapshot for [command].
+ *
+ * The reducer performs no Android, database, alarm, or notification work. Time and identifiers are
+ * injected so a transition is deterministic under test.
+ *
+ * @throws IllegalArgumentException when [command] is invalid for the current state.
+ */
+internal fun reduce(
     current: TimerSnapshot?,
     command: TimerCommand,
     clock: ClockSource,
+    identifiers: IdentifierSource,
 ): TimerSnapshot? = when (command) {
     is TimerCommand.Start -> {
         require(current == null || current.stage == TimerStage.Idle) {
             "A timer can only start from Idle"
         }
-        startSession(command, clock)
+        startSession(command, clock, identifiers)
     }
 
     TimerCommand.Pause ->
@@ -35,6 +42,7 @@ fun remainingMs(
 private fun startSession(
     command: TimerCommand.Start,
     clock: ClockSource,
+    identifiers: IdentifierSource,
 ): TimerSnapshot {
     require(command.presetId.isNotBlank()) { "presetId must not be blank" }
     require(command.totalDurationMs > 0L) { "totalDurationMs must be positive" }
@@ -53,7 +61,7 @@ private fun startSession(
     }
 
     return TimerSnapshot(
-        sessionId = UUID.randomUUID().toString(),
+        sessionId = identifiers.newId(),
         stage = stage,
         totalDurationMs = command.totalDurationMs,
         warmupDurationMs = command.warmupDurationMs,
@@ -135,7 +143,7 @@ private fun TimerSnapshot.advancePhase(clock: ClockSource): TimerSnapshot {
     val nowUtcMs = clock.utcNowMs()
     val currentDeadlineElapsedMs = requireNotNull(phaseDeadlineElapsedMs)
 
-    // A stale duplicate alarm must not advance the newly-started next phase.
+    // A stale duplicate alarm must not advance a newly started phase.
     if (nowElapsedMs < currentDeadlineElapsedMs) return this
 
     return when (stage) {

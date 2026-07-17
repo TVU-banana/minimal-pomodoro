@@ -19,6 +19,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
+/** Displays lifecycle-aware session history from the local Room source of truth. */
 class HistoryFragment : Fragment(R.layout.fragment_history) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val list = view.findViewById<RecyclerView>(R.id.history_list)
@@ -72,33 +73,36 @@ private class SessionViewHolder(private val text: TextView) : RecyclerView.ViewH
         val started = Instant.ofEpochMilli(session.startedAtUtcMs)
             .atZone(ZoneId.of(session.timezoneId))
             .format(formatter)
-        text.text = buildString {
-            append(session.taskNameSnapshot.ifBlank { session.categoryNameSnapshot })
-            append(" · ")
-            append(session.categoryNameSnapshot)
-            append(" · ")
-            append(statusLabel(session.status))
-            append('\n')
-            append(started)
-            append(" · 正式 ")
-            append(formatDuration(session.actualFocusMs))
-            append(" · 启动 ")
-            append(formatDuration(session.actualWarmupMs))
-        }
+        text.text = text.context.getString(
+            R.string.history_item,
+            session.taskNameSnapshot.ifBlank { session.categoryNameSnapshot },
+            session.categoryNameSnapshot,
+            statusLabel(text.context, session.status),
+            started,
+            formatDuration(text.context, session.actualFocusMs),
+            formatDuration(text.context, session.actualWarmupMs),
+        )
         text.contentDescription = text.text
     }
 }
 
-internal fun formatDuration(durationMs: Long): String {
+internal fun formatDuration(context: android.content.Context, durationMs: Long): String {
     val totalMinutes = durationMs / 60_000L
     val hours = totalMinutes / 60L
     val minutes = totalMinutes % 60L
-    return if (hours > 0) "${hours}小时${minutes}分" else "${minutes}分"
+    return if (hours > 0) {
+        context.getString(R.string.duration_hours_minutes, hours, minutes)
+    } else {
+        context.getString(R.string.duration_minutes, minutes)
+    }
 }
 
-private fun statusLabel(status: String): String = when (status) {
-    "COMPLETED" -> "已完成"
-    "ABORTED" -> "已结束"
-    "PAUSED" -> "已暂停"
-    else -> "进行中"
-}
+private fun statusLabel(context: android.content.Context, status: String): String =
+    context.getString(
+        when (status) {
+            "COMPLETED" -> R.string.session_status_completed
+            "ABORTED" -> R.string.session_status_aborted
+            "PAUSED" -> R.string.session_status_paused
+            else -> R.string.session_status_running
+        },
+    )

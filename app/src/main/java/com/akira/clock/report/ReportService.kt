@@ -4,7 +4,8 @@ import com.akira.clock.data.ClockDatabase
 import java.time.LocalDate
 import java.time.ZoneId
 
-class ReportService(private val database: ClockDatabase) {
+/** Loads report segments from Room and delegates deterministic aggregation to the domain layer. */
+internal class ReportService(private val database: ClockDatabase) {
     suspend fun load(
         period: ReportPeriod,
         anchor: LocalDate,
@@ -18,4 +19,3 @@ class ReportService(private val database: ClockDatabase) {
         )
     }
 }
-

@@ -1,6 +1,7 @@
 package com.akira.clock.timer
 
-interface ClockSource {
+/** Monotonic and wall-clock time required by timer transitions. */
+internal interface ClockSource {
     fun elapsedRealtimeMs(): Long
 
     fun utcNowMs(): Long

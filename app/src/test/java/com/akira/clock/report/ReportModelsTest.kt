@@ -11,7 +11,7 @@ import org.junit.Test
 
 class ReportModelsTest {
     @Test
-    fun `quarter range starts on quarter boundary`() {
+    fun quarterRangeStartsOnQuarterBoundary() {
         val range = reportRange(
             ReportPeriod.QUARTER,
             LocalDate.of(2026, 7, 17),
@@ -28,7 +28,7 @@ class ReportModelsTest {
     }
 
     @Test
-    fun `segment crossing report boundary is clipped exactly`() {
+    fun segmentCrossingReportBoundaryIsClippedExactly() {
         val range = TimeRange(1_000L, 2_000L)
         val session = session("s1")
         val rows = aggregateReport(
@@ -44,7 +44,7 @@ class ReportModelsTest {
     }
 
     @Test
-    fun `running session is not included before it is completed or aborted`() {
+    fun runningSessionIsExcludedUntilTerminal() {
         val running = session("s1").copy(
             status = SessionStatus.RUNNING.name,
             endedAtUtcMs = null,

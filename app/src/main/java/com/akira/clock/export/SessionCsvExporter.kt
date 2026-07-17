@@ -3,7 +3,7 @@ package com.akira.clock.export
 import com.akira.clock.data.SessionEntity
 import java.time.Instant
 
-object SessionCsvExporter {
+internal object SessionCsvExporter {
     private val header = listOf(
         "id", "presetId", "categoryId", "categoryName", "taskName", "plannedTotalMs", "plannedWarmupMs",
         "actualWarmupMs", "actualFocusMs", "startedAt", "endedAt", "timezoneId", "status", "updatedAt",

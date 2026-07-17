@@ -14,14 +14,15 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import kotlin.math.roundToInt
 
-data class ProcessedBackgroundAsset(
+internal data class ProcessedBackgroundAsset(
     val sha256: String,
     val file: File,
     val width: Int,
     val height: Int,
 )
 
-class BackgroundAssetProcessor(private val context: Context) {
+/** Downsamples, normalizes, hashes, and stores one private WebP background. */
+internal class BackgroundAssetProcessor(private val context: Context) {
     suspend fun process(
         source: Uri,
         maxWidth: Int,

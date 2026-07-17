@@ -12,7 +12,7 @@ import com.akira.clock.timer.TimerStage
 import kotlin.math.max
 import kotlin.math.min
 
-class HourglassTimerView @JvmOverloads constructor(
+internal class HourglassTimerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,

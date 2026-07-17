@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Displays local monthly, quarterly, and yearly category summaries. */
 class ReportsFragment : Fragment(R.layout.fragment_reports) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val list = view.findViewById<RecyclerView>(R.id.report_list)
@@ -83,8 +84,8 @@ private class ReportViewHolder(private val text: TextView) : RecyclerView.ViewHo
         text.text = text.context.getString(
             R.string.report_row,
             row.categoryName,
-            formatDuration(row.focusMs),
-            formatDuration(row.warmupMs),
+            formatDuration(text.context, row.focusMs),
+            formatDuration(text.context, row.warmupMs),
             row.completedCount,
             row.abortedCount,
         )

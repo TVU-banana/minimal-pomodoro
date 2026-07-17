@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "categories")
-data class CategoryEntity(
+internal data class CategoryEntity(
     @PrimaryKey val id: String,
     val name: String,
     val colorArgb: Long,
@@ -26,7 +26,7 @@ data class CategoryEntity(
     ],
     indices = [Index("categoryId")],
 )
-data class TaskPresetEntity(
+internal data class TaskPresetEntity(
     @PrimaryKey val id: String,
     val name: String,
     val categoryId: String,
@@ -42,7 +42,7 @@ data class TaskPresetEntity(
     tableName = "sessions",
     indices = [Index("categoryId"), Index("startedAtUtcMs"), Index("status")],
 )
-data class SessionEntity(
+internal data class SessionEntity(
     @PrimaryKey val id: String,
     val presetId: String?,
     val categoryId: String,
@@ -72,7 +72,7 @@ data class SessionEntity(
     ],
     indices = [Index("sessionId"), Index("startedAtUtcMs")],
 )
-data class SessionSegmentEntity(
+internal data class SessionSegmentEntity(
     @PrimaryKey val id: String,
     val sessionId: String,
     val phase: String,
@@ -81,7 +81,7 @@ data class SessionSegmentEntity(
 )
 
 @Entity(tableName = "timer_checkpoint")
-data class TimerCheckpointEntity(
+internal data class TimerCheckpointEntity(
     @PrimaryKey val singletonId: Int = SINGLETON_ID,
     val sessionId: String,
     val stage: String,
@@ -102,7 +102,7 @@ data class TimerCheckpointEntity(
 }
 
 @Entity(tableName = "assets", indices = [Index(value = ["sha256"], unique = true)])
-data class AssetEntity(
+internal data class AssetEntity(
     @PrimaryKey val id: String,
     val sha256: String,
     val localPath: String,
@@ -112,13 +112,13 @@ data class AssetEntity(
     val createdAtUtcMs: Long,
 )
 
-enum class SessionStatus { RUNNING, PAUSED, COMPLETED, ABORTED }
+internal enum class SessionStatus { RUNNING, PAUSED, COMPLETED, ABORTED }
 
-enum class TimerStyle { DIGITAL, RING, HOURGLASS }
+internal enum class TimerStyle { DIGITAL, RING, HOURGLASS }
 
-enum class SessionPhase { WARMUP, FOCUS }
+internal enum class SessionPhase { WARMUP, FOCUS }
 
-data class CategoryReportRow(
+internal data class CategoryReportRow(
     val categoryId: String,
     val categoryName: String,
     val warmupMs: Long,

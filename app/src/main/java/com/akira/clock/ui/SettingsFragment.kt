@@ -14,6 +14,7 @@ import com.akira.clock.R
 import com.akira.clock.export.ClockBackupService
 import kotlinx.coroutines.launch
 
+/** Owns local behavior settings and Storage Access Framework data operations. */
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private val createBackup = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip"),

@@ -6,7 +6,7 @@ import org.junit.Test
 
 class AlarmIdempotencyTest {
     @Test
-    fun `old phase alarm cannot advance a newer phase`() {
+    fun oldPhaseAlarmCannotAdvanceNewerPhase() {
         assertFalse(
             deadlineIsEligible(
                 receivedDeadlineUtcMs = 1_000L,
@@ -16,7 +16,7 @@ class AlarmIdempotencyTest {
     }
 
     @Test
-    fun `matching alarm is eligible even if wall clock changed`() {
+    fun matchingAlarmIsEligibleAfterWallClockChange() {
         assertTrue(
             deadlineIsEligible(
                 receivedDeadlineUtcMs = 2_000L,
@@ -26,7 +26,7 @@ class AlarmIdempotencyTest {
     }
 
     @Test
-    fun `later alarm may catch up an overdue phase after interrupted persistence`() {
+    fun laterAlarmMayCatchUpOverduePhase() {
         assertTrue(
             deadlineIsEligible(
                 receivedDeadlineUtcMs = 3_000L,

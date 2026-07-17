@@ -5,7 +5,7 @@ import org.junit.Test
 
 class BackupMergerTest {
     @Test
-    fun `duplicate ids keep newest updated record`() {
+    fun duplicateIdsKeepNewestUpdatedRecord() {
         val existing = sampleBackup().normalized()
         val oldSession = existing.sessions.first()
         val incoming = existing.copy(

@@ -7,7 +7,7 @@ import org.junit.Test
 
 class OpenBackupCodecTest {
     @Test
-    fun `unknown JSON fields are ignored`() {
+    fun unknownJsonFieldsAreIgnored() {
         val encoded = OpenBackupCodec.encode(sampleBackup()).asMap().toMutableMap()
         val categories = encoded.getValue(CATEGORIES_FILE).toString(StandardCharsets.UTF_8)
             .replace("}]", ",\"futureField\":{\"enabled\":true}}]")
@@ -19,7 +19,7 @@ class OpenBackupCodecTest {
     }
 
     @Test
-    fun `open files are deterministic and sessions use chronological NDJSON`() {
+    fun openFilesAreDeterministicAndSessionsAreChronological() {
         val first = OpenBackupCodec.encode(sampleBackup())
         val second = OpenBackupCodec.encode(sampleBackup().copy(sessions = sampleBackup().sessions.reversed()))
 

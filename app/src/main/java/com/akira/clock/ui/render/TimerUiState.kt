@@ -2,7 +2,8 @@ package com.akira.clock.ui.render
 
 import com.akira.clock.timer.TimerStage
 
-data class TimerUiState(
+/** Immutable presentation state consumed by all timer renderers. */
+internal data class TimerUiState(
     val stage: TimerStage,
     val taskName: String,
     val categoryName: String,

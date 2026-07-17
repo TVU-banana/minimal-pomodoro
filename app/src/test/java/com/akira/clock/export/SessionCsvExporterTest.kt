@@ -6,7 +6,7 @@ import org.junit.Test
 
 class SessionCsvExporterTest {
     @Test
-    fun `CSV uses RFC4180 escaping and CRLF`() {
+    fun csvUsesRfc4180EscapingAndCrLf() {
         val session = sampleSession().copy(categoryNameSnapshot = "学习,\"专注\"\n第二行")
 
         val csv = SessionCsvExporter.export(listOf(session))
@@ -17,7 +17,7 @@ class SessionCsvExporterTest {
     }
 
     @Test
-    fun `CSV records are sorted by start and id`() {
+    fun csvRecordsAreSortedByStartAndId() {
         val backup = sampleBackup()
         val csv = SessionCsvExporter.export(backup.sessions)
         val first = backup.sessions.minBy { it.startedAtUtcMs }

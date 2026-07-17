@@ -1,6 +1,7 @@
 package com.akira.clock.timer
 
-data class TimerSnapshot(
+/** Durable domain snapshot from which all countdown values can be reconstructed. */
+internal data class TimerSnapshot(
     val sessionId: String,
     val stage: TimerStage,
     val totalDurationMs: Long,

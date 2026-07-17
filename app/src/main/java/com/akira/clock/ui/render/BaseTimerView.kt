@@ -6,8 +6,10 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
 import com.akira.clock.R
+import com.akira.clock.timer.TimerStage
 
-abstract class BaseTimerView @JvmOverloads constructor(
+/** Base View that applies shared timer text, colors, and accessibility semantics. */
+internal abstract class BaseTimerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
@@ -42,8 +44,23 @@ abstract class BaseTimerView @JvmOverloads constructor(
     final override fun bind(state: TimerUiState) {
         this.state = state
         timeText = TimerRenderMath.formatRemaining(state.remainingMs)
-        stageText = if (state.paused) "已暂停" else TimerRenderMath.stageLabel(state.stage)
-        contentDescription = TimerRenderMath.accessibilityDescription(state)
+        stageText = context.getString(stageLabelResource(state.stage))
+        contentDescription = if (state.categoryName.isBlank()) {
+            context.getString(
+                R.string.timer_accessibility_without_category,
+                state.taskName,
+                stageText,
+                timeText,
+            )
+        } else {
+            context.getString(
+                R.string.timer_accessibility_with_category,
+                state.taskName,
+                state.categoryName,
+                stageText,
+                timeText,
+            )
+        }
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         onStateBound(state)
         invalidate()
@@ -54,4 +71,13 @@ abstract class BaseTimerView @JvmOverloads constructor(
     override fun startRendering() = Unit
 
     override fun stopRendering() = Unit
+
+    private fun stageLabelResource(stage: TimerStage): Int = when (stage) {
+        TimerStage.Idle -> R.string.timer_stage_idle
+        TimerStage.Warmup -> R.string.timer_stage_warmup
+        TimerStage.Focus -> R.string.timer_stage_focus
+        TimerStage.Paused -> R.string.timer_stage_paused
+        TimerStage.Completed -> R.string.timer_stage_completed
+        TimerStage.Aborted -> R.string.timer_stage_aborted
+    }
 }

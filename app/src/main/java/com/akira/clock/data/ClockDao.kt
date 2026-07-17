@@ -6,7 +6,7 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface CategoryDao {
+internal interface CategoryDao {
     @Upsert
     suspend fun upsert(category: CategoryEntity)
 
@@ -24,7 +24,7 @@ interface CategoryDao {
 }
 
 @Dao
-interface TaskPresetDao {
+internal interface TaskPresetDao {
     @Upsert
     suspend fun upsert(preset: TaskPresetEntity)
 
@@ -42,7 +42,7 @@ interface TaskPresetDao {
 }
 
 @Dao
-interface SessionDao {
+internal interface SessionDao {
     @Upsert
     suspend fun upsert(session: SessionEntity)
 
@@ -79,7 +79,7 @@ interface SessionDao {
 }
 
 @Dao
-interface SessionSegmentDao {
+internal interface SessionSegmentDao {
     @Upsert
     suspend fun upsert(segment: SessionSegmentEntity)
 
@@ -97,7 +97,7 @@ interface SessionSegmentDao {
 }
 
 @Dao
-interface TimerCheckpointDao {
+internal interface TimerCheckpointDao {
     @Upsert
     suspend fun upsert(checkpoint: TimerCheckpointEntity)
 
@@ -109,7 +109,7 @@ interface TimerCheckpointDao {
 }
 
 @Dao
-interface AssetDao {
+internal interface AssetDao {
     @Upsert
     suspend fun upsert(asset: AssetEntity)
 
@@ -118,6 +118,9 @@ interface AssetDao {
 
     @Query("SELECT * FROM assets WHERE sha256 = :sha256 LIMIT 1")
     suspend fun findBySha256(sha256: String): AssetEntity?
+
+    @Query("SELECT * FROM assets WHERE id = :id LIMIT 1")
+    suspend fun get(id: String): AssetEntity?
 
     @Query("SELECT * FROM assets ORDER BY id")
     suspend fun allForExport(): List<AssetEntity>

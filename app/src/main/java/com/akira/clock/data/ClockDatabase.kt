@@ -17,7 +17,7 @@ import androidx.room.RoomDatabase
     version = 1,
     exportSchema = true,
 )
-abstract class ClockDatabase : RoomDatabase() {
+internal abstract class ClockDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun taskPresetDao(): TaskPresetDao
     abstract fun sessionDao(): SessionDao

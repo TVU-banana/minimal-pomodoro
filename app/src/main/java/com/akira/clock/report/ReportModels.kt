@@ -9,11 +9,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-enum class ReportPeriod { MONTH, QUARTER, YEAR }
+internal enum class ReportPeriod { MONTH, QUARTER, YEAR }
 
-data class TimeRange(val fromUtcMs: Long, val toUtcMs: Long)
+internal data class TimeRange(val fromUtcMs: Long, val toUtcMs: Long)
 
-data class ReportRow(
+internal data class ReportRow(
     val categoryId: String,
     val categoryName: String,
     val warmupMs: Long,
@@ -29,7 +29,7 @@ data class ReportRow(
         }
 }
 
-fun reportRange(
+internal fun reportRange(
     period: ReportPeriod,
     anchor: LocalDate,
     zoneId: ZoneId,
@@ -53,7 +53,7 @@ fun reportRange(
     )
 }
 
-fun aggregateReport(
+internal fun aggregateReport(
     sessions: List<SessionEntity>,
     segments: List<SessionSegmentEntity>,
     range: TimeRange,
@@ -102,5 +102,5 @@ fun aggregateReport(
     }.sortedByDescending { it.focusMs }
 }
 
-fun currentDate(zoneId: ZoneId, nowUtcMs: Long): LocalDate =
+internal fun currentDate(zoneId: ZoneId, nowUtcMs: Long): LocalDate =
     ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowUtcMs), zoneId).toLocalDate()

@@ -19,7 +19,7 @@ class ClockBackupArchiveTest {
     private val exportedAt = Instant.parse("2026-07-15T10:30:00Z")
 
     @Test
-    fun `archive and checksums are deterministic`() {
+    fun archiveAndChecksumsAreDeterministic() {
         val first = ClockBackupArchive.writeToBytes(sampleBackup(), "0.3.0", exportedAt)
         val second = ClockBackupArchive.writeToBytes(sampleBackup(), "0.3.0", exportedAt)
 
@@ -28,7 +28,7 @@ class ClockBackupArchiveTest {
     }
 
     @Test
-    fun `checksum mismatch rejects archive before importer is called`() {
+    fun checksumMismatchRejectsArchiveBeforeImport() {
         val valid = ClockBackupArchive.writeToBytes(sampleBackup(), "0.3.0", exportedAt)
         val entries = unzip(valid)
         entries[CATEGORIES_FILE] = entries.getValue(CATEGORIES_FILE) + ' '.code.toByte()
@@ -42,7 +42,7 @@ class ClockBackupArchiveTest {
     }
 
     @Test
-    fun `unknown major schema is rejected`() {
+    fun unknownMajorSchemaIsRejected() {
         val valid = ClockBackupArchive.writeToBytes(sampleBackup(), "0.3.0", exportedAt)
         val entries = unzip(valid)
         entries[MANIFEST_FILE] = entries.getValue(MANIFEST_FILE).toString(StandardCharsets.UTF_8)

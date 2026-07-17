@@ -6,10 +6,10 @@ import com.akira.clock.data.SessionEntity
 import com.akira.clock.data.SessionSegmentEntity
 import com.akira.clock.data.TaskPresetEntity
 
-const val BACKUP_FORMAT = "clock-backup"
-const val BACKUP_SCHEMA_VERSION = 1
+internal const val BACKUP_FORMAT = "clock-backup"
+internal const val BACKUP_SCHEMA_VERSION = 1
 
-data class BackupBundle(
+internal data class BackupBundle(
     val categories: List<CategoryEntity>,
     val presets: List<TaskPresetEntity>,
     val sessions: List<SessionEntity>,
@@ -36,7 +36,7 @@ data class BackupBundle(
     override fun hashCode(): Int = 31 * categories.hashCode() + 31 * presets.hashCode() + 31 * sessions.hashCode() + 31 * segments.hashCode() + assets.hashCode()
 }
 
-data class BackupManifest(
+internal data class BackupManifest(
     val schemaVersion: Int,
     val appVersion: String,
     val exportedAt: String,
@@ -44,25 +44,26 @@ data class BackupManifest(
 )
 
 /** Fully parsed and validated import. No database writes happen while creating this value. */
-data class ValidatedBackup(val manifest: BackupManifest, val bundle: BackupBundle)
+internal data class ValidatedBackup(val manifest: BackupManifest, val bundle: BackupBundle)
 
-class BackupFormatException(message: String, cause: Throwable? = null) : Exception(message, cause)
+internal class BackupFormatException(message: String, cause: Throwable? = null) :
+    Exception(message, cause)
 
 /** Implement this with one Room `withTransaction` block. */
-fun interface AtomicBackupWriter {
+internal fun interface AtomicBackupWriter {
     suspend fun write(bundle: BackupBundle)
 }
 
-fun interface BackupImporter {
+internal fun interface BackupImporter {
     suspend fun import(validated: ValidatedBackup)
 }
 
-class AtomicBackupImporter(private val writer: AtomicBackupWriter) : BackupImporter {
+internal class AtomicBackupImporter(private val writer: AtomicBackupWriter) : BackupImporter {
     override suspend fun import(validated: ValidatedBackup) = writer.write(validated.bundle)
 }
 
 /** Parsing and validation finish before the importer (and therefore Room) is invoked. */
-class ClockBackupImportCoordinator(private val importer: BackupImporter) {
+internal class ClockBackupImportCoordinator(private val importer: BackupImporter) {
     suspend fun import(bytes: ByteArray) {
         val validated = ClockBackupArchive.read(bytes)
         importer.import(validated)
@@ -70,7 +71,7 @@ class ClockBackupImportCoordinator(private val importer: BackupImporter) {
 }
 
 /** Conflict policy for an AtomicBackupWriter: keep the record with the newest update timestamp. */
-object BackupMerger {
+internal object BackupMerger {
     fun merge(existing: BackupBundle, incoming: BackupBundle): BackupBundle = BackupValidator.validate(
         BackupBundle(
             categories = mergeBy(existing.categories, incoming.categories, { it.id }, { it.createdAtUtcMs }),

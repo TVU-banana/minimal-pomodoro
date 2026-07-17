@@ -7,7 +7,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import kotlin.math.min
 
-class RingTimerView @JvmOverloads constructor(
+internal class RingTimerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,

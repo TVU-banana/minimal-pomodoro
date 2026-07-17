@@ -7,17 +7,19 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 
-interface PhaseAlarmScheduler {
+/** Schedules exactly one alarm for the active timer phase. */
+internal interface PhaseAlarmScheduler {
     fun canScheduleExactAlarms(): Boolean
     fun schedule(sessionId: String, deadlineElapsedMs: Long, deadlineUtcMs: Long)
     fun cancel()
 }
 
-class ExactAlarmUnavailableException : IllegalStateException(
+internal class ExactAlarmUnavailableException : IllegalStateException(
     "Exact alarms are unavailable. The timer was not started.",
 )
 
-class AndroidPhaseAlarmScheduler(
+/** AlarmManager implementation using monotonic wake-up deadlines. */
+internal class AndroidPhaseAlarmScheduler(
     private val context: Context,
     private val alarmManager: AlarmManager =
         context.getSystemService(AlarmManager::class.java),

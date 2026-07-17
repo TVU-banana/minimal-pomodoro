@@ -7,8 +7,10 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class TimerReducerTest {
+    private var nextSessionNumber = 0
+
     @Test
-    fun `60 minute task contains 15 minute warmup and 45 minute focus`() {
+    fun sixtyMinuteTaskContainsWarmupAndFocus() {
         val clock = FakeClock(elapsedMs = 0L, utcMs = 1_000_000L)
 
         var state = reduce(
@@ -36,7 +38,7 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `zero warmup starts directly in focus for the full total duration`() {
+    fun zeroWarmupStartsDirectlyInFocus() {
         val clock = FakeClock(elapsedMs = 5_000L, utcMs = 10_000L)
 
         val state = reduce(
@@ -50,7 +52,7 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `paused duration is excluded from actual focus`() {
+    fun pausedDurationIsExcludedFromActualFocus() {
         val clock = FakeClock()
         var state = reduce(
             null,
@@ -76,7 +78,7 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `warmup pause resumes warmup with only uninvested time remaining`() {
+    fun warmupPauseResumesWithUninvestedTime() {
         val clock = FakeClock()
         var state = reduce(
             null,
@@ -95,7 +97,7 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `early or duplicate deadline command is idempotent`() {
+    fun earlyOrDuplicateDeadlineIsIdempotent() {
         val clock = FakeClock()
         var state = reduce(
             null,
@@ -114,7 +116,7 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `abort records active time and makes timer terminal`() {
+    fun abortRecordsActiveTimeAndMakesTimerTerminal() {
         val clock = FakeClock()
         var state = reduce(
             null,
@@ -133,7 +135,7 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `terminal timer rejects every command including start`() {
+    fun terminalTimerRejectsEveryCommand() {
         val clock = FakeClock()
         var state = reduce(
             null,
@@ -153,13 +155,13 @@ class TimerReducerTest {
     }
 
     @Test
-    fun `remaining time never becomes negative`() {
+    fun remainingTimeNeverBecomesNegative() {
         assertEquals(500L, remainingMs(deadlineElapsedMs = 1_000L, nowElapsedMs = 500L))
         assertEquals(0L, remainingMs(deadlineElapsedMs = 1_000L, nowElapsedMs = 1_500L))
     }
 
     @Test
-    fun `start creates a distinct session id and validates duration contract`() {
+    fun startCreatesDistinctSessionIdAndValidatesDuration() {
         val clock = FakeClock()
         val first = reduce(
             null,
@@ -191,6 +193,17 @@ class TimerReducerTest {
             utcMs += durationMs
         }
     }
+
+    private fun reduce(
+        current: TimerSnapshot?,
+        command: TimerCommand,
+        clock: ClockSource,
+    ): TimerSnapshot? = com.akira.clock.timer.reduce(
+        current,
+        command,
+        clock,
+        IdentifierSource { "session-${++nextSessionNumber}" },
+    )
 
     private companion object {
         const val MINUTE_MS = 60_000L

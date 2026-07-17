@@ -1,6 +1,7 @@
 package com.akira.clock.timer
 
-sealed interface TimerStage {
+/** Mutually exclusive lifecycle stages of one timer session. */
+internal sealed interface TimerStage {
     data object Idle : TimerStage
     data object Warmup : TimerStage
     data object Focus : TimerStage

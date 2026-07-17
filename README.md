@@ -2,6 +2,8 @@
 
 Clock 是一款本地优先、完全开源、无广告的 Android 专注倒计时工具。
 
+当前首个可用版本为 `1.0.0`。
+
 默认任务总时长为 60 分钟，其中前 15 分钟是启动阶段，之后自动进入 45 分钟正式专注。预热时长可以修改或关闭。15 分钟只是帮助降低开始阻力的默认行为设计，并不是适用于所有人的神经科学定律。
 
 ## 原则
@@ -28,6 +30,8 @@ Clock 是一款本地优先、完全开源、无广告的 Android 专注倒计�
 ```shell
 ./gradlew test lint assembleRelease :benchmark:assembleDebug
 ```
+
+贡献代码前请同时阅读 `CONTRIBUTING.md`。版本变化记录见 `CHANGELOG.md`。
 
 ## 一键真机预览
 

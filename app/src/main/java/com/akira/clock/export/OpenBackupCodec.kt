@@ -3,16 +3,13 @@ package com.akira.clock.export
 import com.akira.clock.data.CategoryEntity
 import com.akira.clock.data.AssetEntity
 import com.akira.clock.data.SessionEntity
-import com.akira.clock.data.SessionPhase
 import com.akira.clock.data.SessionSegmentEntity
-import com.akira.clock.data.SessionStatus
 import com.akira.clock.data.TaskPresetEntity
-import com.akira.clock.data.TimerStyle
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.time.Instant
 
-data class OpenBackupFiles(
+/** Deterministic text files contained in an open Clock backup. */
+internal data class OpenBackupFiles(
     val categoriesJson: ByteArray,
     val presetsJson: ByteArray,
     val sessionsNdjson: ByteArray,
@@ -28,7 +25,8 @@ data class OpenBackupFiles(
     )
 }
 
-object OpenBackupCodec {
+/** Encodes and decodes the versioned open backup representation. */
+internal object OpenBackupCodec {
     fun encode(bundle: BackupBundle): OpenBackupFiles {
         val normalized = BackupValidator.validate(bundle).normalized()
         return OpenBackupFiles(
@@ -202,69 +200,6 @@ object OpenBackupCodec {
         files[name] ?: throw BackupFormatException("Missing required file: $name")
 }
 
-object BackupValidator {
-    fun validate(source: BackupBundle): BackupBundle {
-        uniqueIds("category", source.categories.map { it.id })
-        uniqueIds("preset", source.presets.map { it.id })
-        uniqueIds("session", source.sessions.map { it.id })
-        uniqueIds("segment", source.segments.map { it.id })
-        uniqueIds("asset", source.assets.map { it.id })
-        val categoryIds = source.categories.mapTo(hashSetOf()) { it.id }
-        val presetIds = source.presets.mapTo(hashSetOf()) { it.id }
-        val sessionIds = source.sessions.mapTo(hashSetOf()) { it.id }
-        val assetIds = source.assets.mapTo(hashSetOf()) { it.id }
-
-        source.categories.forEach {
-            requireFormat(it.id.isNotBlank(), "Category id is blank")
-            requireFormat(it.name.isNotBlank(), "Category ${it.id} name is blank")
-            requireFormat(it.createdAtUtcMs >= 0, "Category ${it.id} timestamp is invalid")
-        }
-        source.presets.forEach {
-            requireFormat(it.categoryId in categoryIds, "Preset ${it.id} references missing category")
-            requireFormat(it.totalDurationMs > 0, "Preset ${it.id} total duration is invalid")
-            requireFormat(it.warmupDurationMs in 0 until it.totalDurationMs, "Preset ${it.id} warmup is invalid")
-            requireFormat(TimerStyle.entries.any { style -> style.name == it.timerStyle }, "Preset ${it.id} style is invalid")
-            requireFormat(it.backgroundAssetId == null || it.backgroundAssetId in assetIds, "Preset ${it.id} references missing asset")
-        }
-        source.sessions.forEach {
-            requireFormat(it.categoryId in categoryIds, "Session ${it.id} references missing category")
-            requireFormat(it.presetId == null || it.presetId in presetIds, "Session ${it.id} references missing preset")
-            requireFormat(it.plannedTotalMs > 0, "Session ${it.id} total duration is invalid")
-            requireFormat(it.plannedWarmupMs in 0 until it.plannedTotalMs, "Session ${it.id} warmup is invalid")
-            requireFormat(it.actualWarmupMs >= 0 && it.actualFocusMs >= 0, "Session ${it.id} actual duration is invalid")
-            requireFormat(SessionStatus.entries.any { status -> status.name == it.status }, "Session ${it.id} status is invalid")
-            requireFormat(it.endedAtUtcMs == null || it.endedAtUtcMs >= it.startedAtUtcMs, "Session ${it.id} end is invalid")
-        }
-        source.segments.forEach {
-            requireFormat(it.sessionId in sessionIds, "Segment ${it.id} references missing session")
-            requireFormat(SessionPhase.entries.any { phase -> phase.name == it.phase }, "Segment ${it.id} phase is invalid")
-            requireFormat(it.endedAtUtcMs == null || it.endedAtUtcMs >= it.startedAtUtcMs, "Segment ${it.id} end is invalid")
-        }
-        source.assets.forEach {
-            requireFormat(it.sha256.matches(Regex("[0-9a-f]{64}")), "Asset ${it.id} hash is invalid")
-            requireFormat(it.width > 0 && it.height > 0, "Asset ${it.id} dimensions are invalid")
-            requireFormat(it.referenceCount >= 0, "Asset ${it.id} reference count is invalid")
-        }
-        source.media.forEach { (digest, bytes) ->
-            requireFormat(digest.matches(Regex("[0-9a-f]{64}")), "Invalid media name: $digest")
-            requireFormat(digest == sha256(bytes), "Media checksum does not match its name: $digest")
-        }
-        return source
-    }
-
-    private fun uniqueIds(kind: String, ids: List<String>) {
-        val duplicate = ids.groupingBy { it }.eachCount().entries.firstOrNull { it.value > 1 }?.key
-        requireFormat(duplicate == null, "Duplicate $kind id: $duplicate")
-    }
-}
-
-internal fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-    .digest(bytes).joinToString("") { "%02x".format(it) }
-
-private fun requireFormat(condition: Boolean, message: String) {
-    if (!condition) throw BackupFormatException(message)
-}
-
 private fun Map<String, JsonValue>.requiredInstant(name: String): Long = try {
     val source = requiredString(name)
     if (!source.endsWith('Z')) throw IllegalArgumentException("UTC designator required")
@@ -282,9 +217,9 @@ private fun Map<String, JsonValue>.optionalInstant(name: String): Long? = option
     }
 }
 
-const val MANIFEST_FILE = "manifest.json"
-const val CATEGORIES_FILE = "categories.json"
-const val PRESETS_FILE = "presets.json"
-const val SESSIONS_FILE = "sessions.ndjson"
-const val SEGMENTS_FILE = "segments.ndjson"
-const val ASSETS_FILE = "assets.json"
+internal const val MANIFEST_FILE = "manifest.json"
+internal const val CATEGORIES_FILE = "categories.json"
+internal const val PRESETS_FILE = "presets.json"
+internal const val SESSIONS_FILE = "sessions.ndjson"
+internal const val SEGMENTS_FILE = "segments.ndjson"
+internal const val ASSETS_FILE = "assets.json"

@@ -14,17 +14,18 @@ import com.akira.clock.timer.TimerSnapshot
 import com.akira.clock.timer.TimerStage
 import com.akira.clock.ui.MainActivity
 
-class TimerNotificationManager(private val context: Context) {
+/** Builds phase-only notifications without per-second application updates. */
+internal class TimerNotificationManager(private val context: Context) {
     private val manager = context.getSystemService(NotificationManager::class.java)
 
     fun createChannel() {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "计时提醒",
+                context.getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "预热及专注阶段结束提醒"
+                description = context.getString(R.string.notification_channel_description)
             },
         )
     }
@@ -50,13 +51,37 @@ class TimerNotificationManager(private val context: Context) {
                         .setWhen(deadline)
                         .setOngoing(true)
                 }
-                builder.addAction(action("暂停", PhaseAlarmReceiver.ACTION_PAUSE, snapshot.sessionId))
-                builder.addAction(action("结束", PhaseAlarmReceiver.ACTION_ABORT, snapshot.sessionId))
+                builder.addAction(
+                    action(
+                        context.getString(R.string.notification_action_pause),
+                        PhaseAlarmReceiver.ACTION_PAUSE,
+                        snapshot.sessionId,
+                    ),
+                )
+                builder.addAction(
+                    action(
+                        context.getString(R.string.notification_action_abort),
+                        PhaseAlarmReceiver.ACTION_ABORT,
+                        snapshot.sessionId,
+                    ),
+                )
             }
             TimerStage.Paused -> {
                 builder.setOngoing(true)
-                builder.addAction(action("继续", PhaseAlarmReceiver.ACTION_RESUME, snapshot.sessionId))
-                builder.addAction(action("结束", PhaseAlarmReceiver.ACTION_ABORT, snapshot.sessionId))
+                builder.addAction(
+                    action(
+                        context.getString(R.string.notification_action_resume),
+                        PhaseAlarmReceiver.ACTION_RESUME,
+                        snapshot.sessionId,
+                    ),
+                )
+                builder.addAction(
+                    action(
+                        context.getString(R.string.notification_action_abort),
+                        PhaseAlarmReceiver.ACTION_ABORT,
+                        snapshot.sessionId,
+                    ),
+                )
             }
             else -> Unit
         }
@@ -91,23 +116,25 @@ class TimerNotificationManager(private val context: Context) {
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
-    private fun stageTitle(stage: TimerStage): String = when (stage) {
-        TimerStage.Warmup -> "预热中"
-        TimerStage.Focus -> "专注中"
-        TimerStage.Paused -> "计时已暂停"
-        TimerStage.Completed -> "任务已完成"
-        TimerStage.Aborted -> "任务已结束"
-        TimerStage.Idle -> "Clock"
-    }
+    private fun stageTitle(stage: TimerStage): String = context.getString(when (stage) {
+        TimerStage.Warmup -> R.string.notification_title_warmup
+        TimerStage.Focus -> R.string.notification_title_focus
+        TimerStage.Paused -> R.string.notification_title_paused
+        TimerStage.Completed -> R.string.notification_title_completed
+        TimerStage.Aborted -> R.string.notification_title_aborted
+        TimerStage.Idle -> R.string.app_name
+    })
 
-    private fun contentText(snapshot: TimerSnapshot): String = when (snapshot.stage) {
-        TimerStage.Warmup -> "预热结束后将自动进入专注阶段"
-        TimerStage.Focus -> "保持专注，阶段结束时会提醒你"
-        TimerStage.Paused -> "暂停时间不会计入投入时长"
-        TimerStage.Completed -> "本次投入已保存"
-        TimerStage.Aborted -> "本次实际投入已保存"
-        TimerStage.Idle -> "尚未开始任务"
-    }
+    private fun contentText(snapshot: TimerSnapshot): String = context.getString(
+        when (snapshot.stage) {
+            TimerStage.Warmup -> R.string.notification_content_warmup
+            TimerStage.Focus -> R.string.notification_content_focus
+            TimerStage.Paused -> R.string.notification_content_paused
+            TimerStage.Completed -> R.string.notification_content_completed
+            TimerStage.Aborted -> R.string.notification_content_aborted
+            TimerStage.Idle -> R.string.notification_content_idle
+        },
+    )
 
     companion object {
         const val CHANNEL_ID = "timer_phase"

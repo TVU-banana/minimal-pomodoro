@@ -1,6 +1,7 @@
 package com.akira.clock.timer
 
-sealed interface TimerCommand {
+/** Complete set of commands accepted by the timer state machine. */
+internal sealed interface TimerCommand {
     data class Start(
         val presetId: String,
         val totalDurationMs: Long,

@@ -4,17 +4,22 @@ import java.time.ZoneId
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 
-class ClockRepository(private val database: ClockDatabase) {
+/** Application-facing data operations that do not belong to timer transition transactions. */
+internal class ClockRepository(private val database: ClockDatabase) {
     fun observeCategories(): Flow<List<CategoryEntity>> = database.categoryDao().observeActive()
     fun observePresets(): Flow<List<TaskPresetEntity>> = database.taskPresetDao().observeAll()
     fun observeSessions(): Flow<List<SessionEntity>> = database.sessionDao().observeAll()
 
-    suspend fun ensureDefaults(nowUtcMs: Long) {
+    suspend fun ensureDefaults(
+        nowUtcMs: Long,
+        defaultCategoryName: String,
+        defaultPresetName: String,
+    ) {
         if (database.categoryDao().get(DEFAULT_CATEGORY_ID) == null) {
             database.categoryDao().upsert(
                 CategoryEntity(
                     id = DEFAULT_CATEGORY_ID,
-                    name = "专注",
+                    name = defaultCategoryName,
                     colorArgb = 0xFFD95D39,
                     createdAtUtcMs = nowUtcMs,
                 ),
@@ -24,7 +29,7 @@ class ClockRepository(private val database: ClockDatabase) {
             database.taskPresetDao().upsert(
                 TaskPresetEntity(
                     id = DEFAULT_PRESET_ID,
-                    name = "开始一次专注",
+                    name = defaultPresetName,
                     categoryId = DEFAULT_CATEGORY_ID,
                     totalDurationMs = 60 * 60_000L,
                     warmupDurationMs = 15 * 60_000L,
@@ -43,12 +48,13 @@ class ClockRepository(private val database: ClockDatabase) {
         timerStyle: TimerStyle = TimerStyle.DIGITAL,
         backgroundAssetId: String? = null,
         nowUtcMs: Long,
+        unnamedTaskName: String,
     ): TaskPresetEntity {
         require(totalMinutes in 1..1_440)
         require(warmupMinutes in 0 until totalMinutes)
         val preset = TaskPresetEntity(
             id = UUID.randomUUID().toString(),
-            name = name.trim().ifEmpty { "未命名任务" },
+            name = name.trim().ifEmpty { unnamedTaskName },
             categoryId = categoryId,
             totalDurationMs = totalMinutes * 60_000L,
             warmupDurationMs = warmupMinutes * 60_000L,
