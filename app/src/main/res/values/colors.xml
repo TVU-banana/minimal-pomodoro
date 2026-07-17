@@ -1,12 +1,16 @@
 <resources>
-    <color name="clock_primary">#D95D39</color>
-    <color name="clock_on_primary">#FFFFFF</color>
-    <color name="clock_accent">#2E7D6B</color>
-    <color name="clock_background">#FFF9F3</color>
-    <color name="clock_surface">#FFFFFFFF</color>
-    <color name="clock_on_surface">#241F1B</color>
-    <color name="clock_on_surface_muted">#655D56</color>
-    <color name="clock_outline">#D7CEC5</color>
-    <color name="clock_danger">#B3261E</color>
+    <!-- Anthropic-inspired editorial palette, sampled from anthropic.com. -->
+    <color name="clock_primary">#D97757</color>
+    <color name="clock_on_primary">#141413</color>
+    <color name="clock_primary_soft">#F2DFD7</color>
+    <color name="clock_accent">#3D3D3A</color>
+    <color name="clock_background">#FAF9F5</color>
+    <color name="clock_surface">#F0EEE6</color>
+    <color name="clock_surface_raised">#FFFDF8</color>
+    <color name="clock_on_surface">#141413</color>
+    <color name="clock_on_surface_muted">#65645F</color>
+    <color name="clock_disabled">#87867F</color>
+    <color name="clock_outline">#C6C4BA</color>
+    <color name="clock_outline_soft">#E8E6DC</color>
+    <color name="clock_danger">#A43E32</color>
 </resources>
-

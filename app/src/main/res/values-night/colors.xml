@@ -1,12 +1,15 @@
 <resources>
-    <color name="clock_primary">#FFB59D</color>
-    <color name="clock_on_primary">#5B1A07</color>
-    <color name="clock_accent">#8ED3BF</color>
-    <color name="clock_background">#17130F</color>
-    <color name="clock_surface">#211C17</color>
-    <color name="clock_on_surface">#F2E9E1</color>
-    <color name="clock_on_surface_muted">#C8BDB4</color>
-    <color name="clock_outline">#544B44</color>
-    <color name="clock_danger">#FFB4AB</color>
+    <color name="clock_primary">#E58A6A</color>
+    <color name="clock_on_primary">#141413</color>
+    <color name="clock_primary_soft">#3B2821</color>
+    <color name="clock_accent">#E8E6DC</color>
+    <color name="clock_background">#141413</color>
+    <color name="clock_surface">#23231F</color>
+    <color name="clock_surface_raised">#2B2B26</color>
+    <color name="clock_on_surface">#FAF9F5</color>
+    <color name="clock_on_surface_muted">#B0AEA5</color>
+    <color name="clock_disabled">#87867F</color>
+    <color name="clock_outline">#4A4944</color>
+    <color name="clock_outline_soft">#32322E</color>
+    <color name="clock_danger">#F09A8E</color>
 </resources>
-

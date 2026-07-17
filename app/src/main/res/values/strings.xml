@@ -6,6 +6,16 @@
     <string name="nav_history">历史</string>
     <string name="nav_reports">报告</string>
     <string name="nav_settings">设置</string>
+    <string name="timer_eyebrow">CLOCK / FOCUS</string>
+    <string name="history_eyebrow">CLOCK / ARCHIVE</string>
+    <string name="reports_eyebrow">CLOCK / INSIGHTS</string>
+    <string name="settings_eyebrow">CLOCK / SYSTEM</string>
+    <string name="history_subtitle">每一次投入，都留下清晰可迁移的记录。</string>
+    <string name="reports_subtitle">从时间中观察节奏，不用数字评判自己。</string>
+    <string name="settings_subtitle">保持工具安静、离线，并按照你的方式工作。</string>
+    <string name="timer_configure">配置本次时间块</string>
+    <string name="settings_behavior_section">体验</string>
+    <string name="settings_data_section">数据与迁移</string>
     <string name="timer_default_task">开始一次专注</string>
     <string name="timer_stage_idle">准备开始</string>
     <string name="timer_stage_warmup">启动阶段</string>

@@ -16,18 +16,18 @@ class RingTimerView @JvmOverloads constructor(
     private val outerTrackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = outlineColor
         style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
-        strokeWidth = 10f * density
+        strokeCap = Paint.Cap.SQUARE
+        strokeWidth = 6f * density
     }
     private val outerProgressPaint = Paint(outerTrackPaint).apply { color = primaryColor }
-    private val innerTrackPaint = Paint(outerTrackPaint).apply { strokeWidth = 5f * density }
+    private val innerTrackPaint = Paint(outerTrackPaint).apply { strokeWidth = 3f * density }
     private val innerProgressPaint = Paint(innerTrackPaint).apply {
         color = context.getColor(com.akira.clock.R.color.clock_accent)
     }
-    private val timePaint = textPaint(foregroundColor, 42f).apply {
-        typeface = android.graphics.Typeface.create("sans", android.graphics.Typeface.BOLD)
+    private val timePaint = textPaint(foregroundColor, 40f).apply {
+        typeface = android.graphics.Typeface.create("monospace", android.graphics.Typeface.NORMAL)
     }
-    private val stagePaint = textPaint(mutedColor, 15f)
+    private val stagePaint = textPaint(mutedColor, 13f)
     private val outerBounds = RectF()
     private val innerBounds = RectF()
 

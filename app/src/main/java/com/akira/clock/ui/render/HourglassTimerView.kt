@@ -21,17 +21,17 @@ class HourglassTimerView @JvmOverloads constructor(
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = outlineColor
         style = Paint.Style.STROKE
-        strokeWidth = 3f * density
+        strokeWidth = 2f * density
         strokeJoin = Paint.Join.ROUND
     }
     private val sandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = primaryColor
         style = Paint.Style.FILL
     }
-    private val timePaint = textPaint(foregroundColor, 30f).apply {
-        typeface = android.graphics.Typeface.create("sans", android.graphics.Typeface.BOLD)
+    private val timePaint = textPaint(foregroundColor, 32f).apply {
+        typeface = android.graphics.Typeface.create("monospace", android.graphics.Typeface.NORMAL)
     }
-    private val stagePaint = textPaint(mutedColor, 14f)
+    private val stagePaint = textPaint(mutedColor, 13f)
     private val glassPath = Path()
     private val sandPath = Path()
     private val particlesX = FloatArray(PARTICLE_COUNT)

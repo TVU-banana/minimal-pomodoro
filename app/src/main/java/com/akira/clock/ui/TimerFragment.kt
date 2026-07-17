@@ -51,6 +51,7 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
     private lateinit var taskTitle: TextView
     private lateinit var error: TextView
     private lateinit var pauseResume: Button
+    private lateinit var startButton: Button
     private var renderer: TimerRenderer? = null
     private var snapshot: TimerSnapshot? = null
     private var taskName: String = "开始一次专注"
@@ -77,15 +78,17 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         coordinator = TimerCoordinator.get(requireContext())
         rendererHost = view.findViewById(R.id.timer_renderer_host)
+        rendererHost.clipToOutline = true
         setup = view.findViewById(R.id.timer_setup)
         controls = view.findViewById(R.id.timer_controls)
         stageLabel = view.findViewById(R.id.timer_stage)
         taskTitle = view.findViewById(R.id.timer_task_title)
         error = view.findViewById(R.id.timer_error)
         pauseResume = view.findViewById(R.id.timer_pause_resume)
+        startButton = view.findViewById(R.id.timer_start)
         setRenderer(TimerStyle.DIGITAL)
 
-        view.findViewById<Button>(R.id.timer_start).setOnClickListener { startTimer(view) }
+        startButton.setOnClickListener { startTimer(view) }
         view.findViewById<Button>(R.id.choose_background).setOnClickListener {
             backgroundPicker.launch(
                 androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -146,6 +149,7 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         }
         requestNotificationPermissionIfNeeded()
         error.isVisible = false
+        startButton.isEnabled = false
         val style = TimerStyle.entries[root.findViewById<Spinner>(R.id.timer_style_input).selectedItemPosition]
         setRenderer(style)
         val app = requireActivity().application as ClockApplication
@@ -165,7 +169,10 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
                 }
                 taskName = preset.name
                 coordinator.start(preset.id)
-            }.onFailure { showError(it.message ?: "无法开始倒计时") }
+            }.onFailure {
+                startButton.isEnabled = true
+                showError(it.message ?: "无法开始倒计时")
+            }
         }
     }
 
@@ -241,6 +248,7 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         val terminal = current.stage == TimerStage.Completed || current.stage == TimerStage.Aborted
         setup.isVisible = terminal
         controls.isVisible = !terminal
+        if (terminal) startButton.isEnabled = true
         pauseResume.text = if (current.stage == TimerStage.Paused) {
             getString(R.string.timer_resume)
         } else {
@@ -253,6 +261,7 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         stageLabel.setText(R.string.timer_stage_idle)
         setup.isVisible = true
         controls.isVisible = false
+        startButton.isEnabled = true
         renderer?.bind(
             TimerUiState(
                 stage = TimerStage.Idle,
