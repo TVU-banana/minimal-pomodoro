@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/main_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/clock_surface"
+        android:orientation="horizontal"
+        android:padding="@dimen/space_8">
+
+        <Button
+            android:id="@+id/nav_timer"
+            style="@style/Clock.BottomNavButton"
+            android:text="@string/nav_timer" />
+
+        <Button
+            android:id="@+id/nav_history"
+            style="@style/Clock.BottomNavButton"
+            android:text="@string/nav_history" />
+
+        <Button
+            android:id="@+id/nav_reports"
+            style="@style/Clock.BottomNavButton"
+            android:text="@string/nav_reports" />
+
+        <Button
+            android:id="@+id/nav_settings"
+            style="@style/Clock.BottomNavButton"
+            android:text="@string/nav_settings" />
+    </LinearLayout>
+</LinearLayout>

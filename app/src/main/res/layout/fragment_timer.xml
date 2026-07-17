@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/space_16">
+
+        <TextView
+            android:id="@+id/timer_task_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/timer_default_task"
+            android:textColor="@color/clock_on_surface"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/timer_stage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_8"
+            android:text="@string/timer_stage_idle"
+            android:textColor="@color/clock_on_surface_muted"
+            android:textSize="16sp" />
+
+        <FrameLayout
+            android:id="@+id/timer_renderer_host"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_marginTop="@dimen/space_16" />
+
+        <LinearLayout
+            android:id="@+id/timer_setup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_16"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:labelFor="@id/task_name_input"
+                android:text="@string/task_name"
+                android:textColor="@color/clock_on_surface" />
+
+            <EditText
+                android:id="@+id/task_name_input"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:importantForAutofill="no"
+                android:inputType="textCapSentences"
+                android:maxLength="80"
+                android:selectAllOnFocus="true"
+                android:text="@string/timer_default_task" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_8"
+                android:labelFor="@id/total_minutes_input"
+                android:text="@string/timer_total_minutes"
+                android:textColor="@color/clock_on_surface" />
+
+            <EditText
+                android:id="@+id/total_minutes_input"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="4"
+                android:text="@string/default_total_minutes" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_8"
+                android:labelFor="@id/warmup_minutes_input"
+                android:text="@string/timer_warmup_minutes"
+                android:textColor="@color/clock_on_surface" />
+
+            <EditText
+                android:id="@+id/warmup_minutes_input"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="3"
+                android:text="@string/default_warmup_minutes" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_8"
+                android:labelFor="@id/timer_style_input"
+                android:text="@string/timer_style"
+                android:textColor="@color/clock_on_surface" />
+
+            <Spinner
+                android:id="@+id/timer_style_input"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:entries="@array/timer_styles" />
+
+            <Button
+                android:id="@+id/choose_background"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="@dimen/space_8"
+                android:text="@string/choose_background" />
+
+            <TextView
+                android:id="@+id/timer_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_8"
+                android:accessibilityLiveRegion="polite"
+                android:textColor="@color/clock_danger"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/timer_start"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="@dimen/space_16"
+                android:backgroundTint="@color/clock_primary"
+                android:text="@string/timer_start"
+                android:textColor="@color/clock_on_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/timer_controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_16"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/timer_pause_resume"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="@dimen/space_8"
+                android:layout_weight="1"
+                android:text="@string/timer_pause"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:id="@+id/timer_abort"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="@dimen/space_8"
+                android:layout_weight="1"
+                android:text="@string/timer_abort"
+                android:textColor="@color/clock_danger"
+                tools:ignore="ButtonStyle" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_24"
+            android:text="@string/timer_semantics_note"
+            android:textColor="@color/clock_on_surface_muted"
+            android:textSize="14sp" />
+    </LinearLayout>
+</ScrollView>

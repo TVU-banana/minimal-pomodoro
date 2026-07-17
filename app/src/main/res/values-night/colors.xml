@@ -1,0 +1,12 @@
+<resources>
+    <color name="clock_primary">#FFB59D</color>
+    <color name="clock_on_primary">#5B1A07</color>
+    <color name="clock_accent">#8ED3BF</color>
+    <color name="clock_background">#17130F</color>
+    <color name="clock_surface">#211C17</color>
+    <color name="clock_on_surface">#F2E9E1</color>
+    <color name="clock_on_surface_muted">#C8BDB4</color>
+    <color name="clock_outline">#544B44</color>
+    <color name="clock_danger">#FFB4AB</color>
+</resources>
+
