@@ -1,6 +1,7 @@
 package com.akira.clock.ui
 
 import android.Manifest
+import android.app.ActivityManager
 import android.app.AlarmManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -58,6 +59,9 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
     private var categoryName: String = "专注"
     private var backgroundAssetId: String? = null
     private var backgroundFile: java.io.File? = null
+    private val isLowRamDevice: Boolean
+        get() = (requireContext().applicationContext
+            .getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).isLowRamDevice
     private val ticker = object : Runnable {
         override fun run() {
             renderSnapshot()
@@ -199,7 +203,7 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
             TimerStyle.RING -> RingTimerView(requireContext())
             TimerStyle.HOURGLASS -> HourglassTimerView(requireContext()).apply {
                 reduceMotion = requireContext().getSharedPreferences(SettingsFragment.PREFERENCES, 0)
-                    .getBoolean(SettingsFragment.KEY_REDUCE_MOTION, false)
+                    .getBoolean(SettingsFragment.KEY_REDUCE_MOTION, false) || isLowRamDevice
             }
         }
         view.layoutParams = ViewGroup.LayoutParams(
@@ -300,7 +304,11 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         viewLifecycleOwner.lifecycleScope.launch {
             runCatching {
                 val processed = BackgroundAssetProcessor(requireContext().applicationContext)
-                    .process(uri, maxWidth = 1_440, maxHeight = 1_440)
+                    .process(
+                        uri,
+                        maxWidth = if (isLowRamDevice) LOW_RAM_BACKGROUND_EDGE else BACKGROUND_EDGE,
+                        maxHeight = if (isLowRamDevice) LOW_RAM_BACKGROUND_EDGE else BACKGROUND_EDGE,
+                    )
                 val asset = withContext(Dispatchers.IO) {
                     app.database.assetDao().findBySha256(processed.sha256) ?: AssetEntity(
                         id = UUID.randomUUID().toString(),
@@ -348,5 +356,10 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         TimerStage.Paused -> getString(R.string.timer_stage_paused)
         TimerStage.Completed -> "已完成"
         TimerStage.Aborted -> "已结束"
+    }
+
+    private companion object {
+        const val BACKGROUND_EDGE = 1_080
+        const val LOW_RAM_BACKGROUND_EDGE = 720
     }
 }
