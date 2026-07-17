@@ -1,0 +1,30 @@
+name: Android
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
+      - run: ./gradlew test lint assembleRelease :benchmark:assembleDebug
+      - name: Enforce APK size budget
+        run: |
+          bytes=$(stat -c%s app/build/outputs/apk/release/app-release-unsigned.apk)
+          test "$bytes" -le 10485760
+      - name: Verify prohibited permissions are absent
+        run: |
+          manifest=app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml
+          ! grep -q 'android.permission.INTERNET' "$manifest"
+          ! grep -q 'android.permission.WAKE_LOCK' "$manifest"
+          ! grep -q 'android.permission.READ_MEDIA_IMAGES' "$manifest"
+          ! grep -q 'android.permission.MANAGE_EXTERNAL_STORAGE' "$manifest"
