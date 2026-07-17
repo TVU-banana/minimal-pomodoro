@@ -29,6 +29,26 @@ Clock 是一款本地优先、完全开源、无广告的 Android 专注倒计�
 ./gradlew test lint assembleRelease :benchmark:assembleDebug
 ```
 
+## 一键真机预览
+
+手机首次开启“开发者选项”和“USB 调试”并授权这台 Mac 后，后续每次修改只需运行：
+
+```shell
+./scripts/run-preview.sh
+```
+
+脚本会自动执行 R8 Preview 构建、覆盖安装并启动 Clock，不再需要手动传输 APK。若连接了多个设备，可先设置 `ANDROID_SERIAL` 指定设备。
+
+Android 11 及以上也可以使用系统“无线调试”，首次配对后无需数据线：
+
+```shell
+adb pair <手机显示的IP:配对端口>
+adb connect <手机显示的IP:调试端口>
+./scripts/run-preview.sh
+```
+
+Clock 是原生 Android 应用，浏览器不能直接运行 APK。电脑预览需要 Android 模拟器或一台通过 ADB 连接的安卓设备。
+
 ## 许可证
 
 GPL-3.0-or-later。详见 `LICENSE`。
