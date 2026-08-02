@@ -6,36 +6,41 @@
     android:paddingHorizontal="@dimen/screen_gutter"
     android:paddingTop="@dimen/space_24">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/reports_eyebrow"
-        android:textAppearance="@style/Clock.Eyebrow" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8"
-        android:text="@string/reports_title"
-        android:textAppearance="@style/Clock.ScreenTitle" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8"
-        android:lineSpacingExtra="3dp"
-        android:text="@string/reports_subtitle"
-        android:textColor="@color/clock_on_surface_muted"
-        android:textSize="15sp" />
-
     <RadioGroup
         android:id="@+id/report_period"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="48dp"
         android:layout_marginTop="@dimen/space_24"
         android:background="@drawable/bg_input"
         android:orientation="horizontal"
         android:padding="3dp">
+
+        <RadioButton
+            android:id="@+id/report_all"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_segment_option"
+            android:button="@null"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="@string/report_all"
+            android:textColor="@color/segment_text"
+            android:textSize="13sp" />
+
+        <RadioButton
+            android:id="@+id/report_year"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="3dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_segment_option"
+            android:button="@null"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="@string/report_year"
+            android:textColor="@color/segment_text"
+            android:textSize="13sp" />
 
         <RadioButton
             android:id="@+id/report_month"
@@ -49,10 +54,10 @@
             android:gravity="center"
             android:text="@string/report_month"
             android:textColor="@color/segment_text"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <RadioButton
-            android:id="@+id/report_quarter"
+            android:id="@+id/report_week"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginHorizontal="3dp"
@@ -61,12 +66,12 @@
             android:button="@null"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:text="@string/report_quarter"
+            android:text="@string/report_week"
             android:textColor="@color/segment_text"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <RadioButton
-            android:id="@+id/report_year"
+            android:id="@+id/report_day"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -74,16 +79,34 @@
             android:button="@null"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:text="@string/report_year"
+            android:text="@string/report_day"
             android:textColor="@color/segment_text"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </RadioGroup>
+
+    <TextView
+        android:id="@+id/report_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_16"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/clock_on_surface"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/report_export_poster"
+        style="@style/Clock.SecondaryButton"
+        android:layout_width="match_parent"
+        android:layout_marginTop="@dimen/space_12"
+        android:text="@string/report_export_poster"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/report_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_40"
+        android:layout_marginTop="@dimen/space_24"
         android:background="@drawable/bg_note"
         android:gravity="start"
         android:lineSpacingExtra="3dp"
@@ -96,7 +119,7 @@
         android:id="@+id/report_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="@dimen/space_24"
+        android:layout_marginTop="@dimen/space_16"
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingBottom="@dimen/space_24" />

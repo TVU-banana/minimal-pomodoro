@@ -21,6 +21,9 @@ internal interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
     suspend fun get(id: String): CategoryEntity?
+
+    @Query("UPDATE categories SET archivedAtUtcMs = :archivedAtUtcMs WHERE id = :id")
+    suspend fun archive(id: String, archivedAtUtcMs: Long)
 }
 
 @Dao
@@ -39,6 +42,15 @@ internal interface TaskPresetDao {
 
     @Query("SELECT * FROM task_presets WHERE id = :id LIMIT 1")
     suspend fun get(id: String): TaskPresetEntity?
+
+    @Query("SELECT * FROM task_presets WHERE categoryId = :categoryId ORDER BY createdAtUtcMs")
+    fun observeByCategory(categoryId: String): Flow<List<TaskPresetEntity>>
+
+    @Query("SELECT * FROM task_presets WHERE categoryId = :categoryId ORDER BY createdAtUtcMs")
+    suspend fun listByCategory(categoryId: String): List<TaskPresetEntity>
+
+    @Query("DELETE FROM task_presets WHERE id = :id")
+    suspend fun delete(id: String)
 }
 
 @Dao
@@ -58,6 +70,9 @@ internal interface SessionDao {
     @Query("SELECT * FROM sessions WHERE id = :id LIMIT 1")
     suspend fun get(id: String): SessionEntity?
 
+    @Query("DELETE FROM sessions WHERE id = :id")
+    suspend fun delete(id: String)
+
     @Query(
         """
         SELECT sessions.categoryId AS categoryId,
@@ -76,6 +91,52 @@ internal interface SessionDao {
         """,
     )
     suspend fun report(fromUtcMs: Long, toUtcMs: Long): List<CategoryReportRow>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(
+            CASE
+                WHEN status = 'COMPLETED' THEN plannedTotalMs
+                WHEN status = 'ABORTED' AND actualFocusMs >= plannedWarmupMs THEN actualFocusMs
+                ELSE 0
+            END
+        ), 0) AS totalFocusMs
+        FROM sessions
+        WHERE categoryId = :categoryId
+          AND startedAtUtcMs >= :fromUtcMs
+          AND startedAtUtcMs < :toUtcMs
+          AND status IN ('COMPLETED', 'ABORTED')
+        """,
+    )
+    suspend fun dailyProgressMs(categoryId: String, fromUtcMs: Long, toUtcMs: Long): Long
+
+    @Query(
+        """
+        SELECT CAST((startedAtUtcMs - :dayStartMs) / 3600000 AS INT) AS hourIndex,
+               COALESCE(SUM(actualFocusMs), 0) AS totalMs
+        FROM sessions
+        WHERE startedAtUtcMs >= :dayStartMs
+          AND startedAtUtcMs < :dayEndMs
+          AND status IN ('COMPLETED', 'ABORTED')
+        GROUP BY hourIndex
+        ORDER BY hourIndex
+        """,
+    )
+    suspend fun focusByHour(dayStartMs: Long, dayEndMs: Long): List<HourFocusRow>
+
+    @Query(
+        """
+        SELECT CAST((startedAtUtcMs - :rangeStartMs) / 86400000 AS INT) AS dayIndex,
+               COALESCE(SUM(actualFocusMs), 0) AS totalMs
+        FROM sessions
+        WHERE startedAtUtcMs >= :rangeStartMs
+          AND startedAtUtcMs < :rangeEndMs
+          AND status IN ('COMPLETED', 'ABORTED')
+        GROUP BY dayIndex
+        ORDER BY dayIndex
+        """,
+    )
+    suspend fun focusByDayIndex(rangeStartMs: Long, rangeEndMs: Long): List<DayFocusRow>
 }
 
 @Dao
@@ -88,6 +149,9 @@ internal interface SessionSegmentDao {
 
     @Query("SELECT * FROM session_segments WHERE sessionId = :sessionId AND endedAtUtcMs IS NULL LIMIT 1")
     suspend fun openForSession(sessionId: String): SessionSegmentEntity?
+
+    @Query("DELETE FROM session_segments WHERE sessionId = :sessionId")
+    suspend fun deleteForSession(sessionId: String)
 
     @Query("SELECT * FROM session_segments WHERE startedAtUtcMs < :toUtcMs AND COALESCE(endedAtUtcMs, :toUtcMs) > :fromUtcMs ORDER BY startedAtUtcMs")
     suspend fun overlapping(fromUtcMs: Long, toUtcMs: Long): List<SessionSegmentEntity>

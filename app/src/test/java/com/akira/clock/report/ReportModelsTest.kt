@@ -4,6 +4,7 @@ import com.akira.clock.data.SessionEntity
 import com.akira.clock.data.SessionPhase
 import com.akira.clock.data.SessionSegmentEntity
 import com.akira.clock.data.SessionStatus
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
@@ -11,20 +12,24 @@ import org.junit.Test
 
 class ReportModelsTest {
     @Test
-    fun quarterRangeStartsOnQuarterBoundary() {
+    fun weekRangeStartsOnMonday() {
+        // 2026-07-17 is a Friday; the ISO week begins on the preceding Monday.
         val range = reportRange(
-            ReportPeriod.QUARTER,
+            ReportPeriod.WEEK,
             LocalDate.of(2026, 7, 17),
             ZoneId.of("Asia/Shanghai"),
         )
-        assertEquals(
-            LocalDate.of(2026, 7, 1),
-            java.time.Instant.ofEpochMilli(range.fromUtcMs).atZone(ZoneId.of("Asia/Shanghai")).toLocalDate(),
-        )
-        assertEquals(
-            LocalDate.of(2026, 10, 1),
-            java.time.Instant.ofEpochMilli(range.toUtcMs).atZone(ZoneId.of("Asia/Shanghai")).toLocalDate(),
-        )
+        val start = java.time.Instant.ofEpochMilli(range.fromUtcMs)
+            .atZone(ZoneId.of("Asia/Shanghai")).toLocalDate()
+        assertEquals(DayOfWeek.MONDAY, start.dayOfWeek)
+        assertEquals(LocalDate.of(2026, 7, 13), start)
+    }
+
+    @Test
+    fun allTimeRangeCoversEverySession() {
+        val range = reportRange(ReportPeriod.ALL_TIME, LocalDate.of(2026, 7, 17), ZoneId.of("UTC"))
+        assertEquals(0L, range.fromUtcMs)
+        assertEquals(Long.MAX_VALUE, range.toUtcMs)
     }
 
     @Test
@@ -57,6 +62,19 @@ class ReportModelsTest {
             range = TimeRange(1_000L, 2_000L),
         )
         assertEquals(emptyList<ReportRow>(), rows)
+    }
+
+    @Test
+    fun aggregateReportAttachesCategoryColorWhenKnown() {
+        val rows = aggregateReport(
+            sessions = listOf(session("s1")),
+            segments = listOf(
+                SessionSegmentEntity("g1", "s1", SessionPhase.FOCUS.name, 0L, 1_000L),
+            ),
+            range = TimeRange(0L, Long.MAX_VALUE),
+            categoryColors = mapOf("c1" to 0xFF28C840L),
+        )
+        assertEquals(0xFF28C840L, rows.single().colorArgb)
     }
 
     private fun session(id: String) = SessionEntity(

@@ -10,6 +10,8 @@ internal fun sampleBackup(categoryName: String = "学习"): BackupBundle {
         id = "1bd29857-5503-4f9a-b811-0f5591f0d245",
         name = categoryName,
         colorArgb = 0xff334455,
+        totalDurationMs = 3_600_000,
+        warmupDurationMs = 900_000,
         createdAtUtcMs = 1_752_541_200_000,
     )
     val preset = TaskPresetEntity(

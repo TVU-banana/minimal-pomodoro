@@ -105,28 +105,42 @@ internal class TimerTransitionStore(
         session: SessionEntity,
     ) {
         database.withTransaction {
-            // Insert the session first because activity segments reference it through a foreign key.
-            database.sessionDao().upsert(session)
-            updateSegments(previous, next)
-            if (next.stage.isTerminal) {
+            if (next.stage.isTerminal && shouldDiscard(session)) {
+                // Sessions shorter than one warmup duration are not meaningful records: remove the
+                // session and its segments so they never surface in reports/history, and clear the
+                // checkpoint so restore returns to idle.
+                database.sessionSegmentDao().deleteForSession(session.id)
+                database.sessionDao().delete(session.id)
                 database.timerCheckpointDao().delete()
             } else {
-                val previousStage = when {
-                    next.stage == TimerStage.Paused -> previous?.stage?.databaseName
-                    previous?.stage == TimerStage.Paused -> null
-                    else -> database.timerCheckpointDao().get()?.previousStage
+                // Insert the session first because activity segments reference it through a foreign key.
+                database.sessionDao().upsert(session)
+                updateSegments(previous, next)
+                if (next.stage.isTerminal) {
+                    database.timerCheckpointDao().delete()
+                } else {
+                    val previousStage = when {
+                        next.stage == TimerStage.Paused -> previous?.stage?.databaseName
+                        previous?.stage == TimerStage.Paused -> null
+                        else -> database.timerCheckpointDao().get()?.previousStage
+                    }
+                    database.timerCheckpointDao().upsert(
+                        next.toCheckpoint(bootCount(), previousStage),
+                    )
                 }
-                database.timerCheckpointDao().upsert(
-                    next.toCheckpoint(bootCount(), previousStage),
-                )
             }
         }
     }
+
+    /** A session counts as a record only once it ran for at least one full warmup duration. */
+    private fun shouldDiscard(session: SessionEntity): Boolean =
+        session.actualWarmupMs + session.actualFocusMs < session.plannedWarmupMs
 
     fun updateSession(
         previous: TimerSnapshot,
         next: TimerSnapshot,
         existing: SessionEntity,
+        abortReason: String? = null,
     ): SessionEntity =
         existing.copy(
             actualWarmupMs = next.accumulatedWarmupMs,
@@ -142,6 +156,8 @@ internal class TimerTransitionStore(
                 TimerStage.Aborted -> SessionStatus.ABORTED.name
                 else -> SessionStatus.RUNNING.name
             },
+            // The reason is only meaningful for an abort; preserve any prior value otherwise.
+            abortReason = if (next.stage == TimerStage.Aborted) abortReason else existing.abortReason,
             updatedAtUtcMs = next.updatedAtUtcMs,
         )
 

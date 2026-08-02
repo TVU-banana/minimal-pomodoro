@@ -1,8 +1,7 @@
 <resources>
-    <!-- Anthropic-inspired editorial palette, sampled from anthropic.com. -->
-    <color name="clock_primary">#D97757</color>
-    <color name="clock_on_primary">#141413</color>
-    <color name="clock_primary_soft">#F2DFD7</color>
+    <color name="clock_primary">#326FEB</color>
+    <color name="clock_on_primary">#FFFFFF</color>
+    <color name="clock_primary_soft">#E0EAFF</color>
     <color name="clock_accent">#3D3D3A</color>
     <color name="clock_background">#FAF9F5</color>
     <color name="clock_surface">#F0EEE6</color>
@@ -13,4 +12,5 @@
     <color name="clock_outline">#C6C4BA</color>
     <color name="clock_outline_soft">#E8E6DC</color>
     <color name="clock_danger">#A43E32</color>
+    <color name="clock_glass">#D9FFFFFF</color>
 </resources>

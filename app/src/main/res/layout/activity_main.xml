@@ -26,11 +26,6 @@
             android:text="@string/nav_timer" />
 
         <Button
-            android:id="@+id/nav_history"
-            style="@style/Clock.BottomNavButton"
-            android:text="@string/nav_history" />
-
-        <Button
             android:id="@+id/nav_reports"
             style="@style/Clock.BottomNavButton"
             android:text="@string/nav_reports" />

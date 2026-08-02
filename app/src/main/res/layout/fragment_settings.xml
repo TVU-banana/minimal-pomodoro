@@ -16,89 +16,73 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_eyebrow"
-            android:textAppearance="@style/Clock.Eyebrow" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:text="@string/settings_title"
-            android:textAppearance="@style/Clock.ScreenTitle" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:lineSpacingExtra="3dp"
-            android:text="@string/settings_subtitle"
-            android:textColor="@color/clock_on_surface_muted"
-            android:textSize="15sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_32"
-            android:text="@string/settings_behavior_section"
+            android:text="@string/settings_theme_section"
             android:textAppearance="@style/Clock.FieldLabel" />
 
-        <LinearLayout
+        <RadioGroup
+            android:id="@+id/theme_radio_group"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_8"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:paddingHorizontal="@dimen/space_16"
-            android:paddingVertical="@dimen/space_8">
+            android:orientation="horizontal">
 
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/reduce_motion"
-                android:layout_width="match_parent"
+            <RadioButton
+                android:id="@+id/theme_system"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minHeight="56dp"
-                android:text="@string/settings_reduce_motion"
-                android:textColor="@color/clock_on_surface"
-                android:textSize="15sp" />
+                android:layout_weight="1"
+                android:text="@string/settings_theme_system" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/clock_outline_soft" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/keep_screen_on"
-                android:layout_width="match_parent"
+            <RadioButton
+                android:id="@+id/theme_light"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minHeight="56dp"
-                android:text="@string/settings_keep_screen_on"
-                android:textColor="@color/clock_on_surface"
-                android:textSize="15sp" />
-        </LinearLayout>
+                android:layout_weight="1"
+                android:text="@string/settings_theme_light" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_20"
-            android:background="@drawable/bg_note"
-            android:lineSpacingExtra="3dp"
-            android:padding="@dimen/space_16"
-            android:text="@string/timer_semantics_note"
-            android:textColor="@color/clock_on_surface"
-            android:textSize="14sp" />
+            <RadioButton
+                android:id="@+id/theme_dark"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_theme_dark" />
+        </RadioGroup>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_32"
+            android:layout_marginTop="@dimen/space_24"
             android:text="@string/settings_data_section"
             android:textAppearance="@style/Clock.FieldLabel" />
 
         <Button
             android:id="@+id/export_backup"
-            style="@style/Clock.PrimaryButton"
+            style="@style/Clock.SecondaryButton"
             android:layout_width="match_parent"
             android:layout_marginTop="@dimen/space_8"
             android:text="@string/settings_export" />
+
+        <Button
+            android:id="@+id/save_durable_archive"
+            style="@style/Clock.SecondaryButton"
+            android:layout_width="match_parent"
+            android:layout_marginTop="@dimen/space_12"
+            android:text="@string/settings_save_durable_archive" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_8"
+            android:text="@string/settings_durable_archive_hint"
+            android:textColor="@color/clock_on_surface_muted"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/delete_durable_archive"
+            style="@style/Clock.SecondaryButton"
+            android:layout_width="match_parent"
+            android:layout_marginTop="@dimen/space_12"
+            android:text="@string/settings_delete_durable_archive" />
 
         <Button
             android:id="@+id/export_csv"
@@ -113,5 +97,29 @@
             android:layout_width="match_parent"
             android:layout_marginTop="@dimen/space_12"
             android:text="@string/settings_import" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_24"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="@dimen/space_20">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="serif"
+                android:text="@string/extended_reading_title"
+                android:textColor="@color/clock_on_surface"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/read_more"
+                style="@style/Clock.SecondaryButton"
+                android:layout_width="match_parent"
+                android:layout_marginTop="@dimen/space_16"
+                android:text="@string/extended_reading_more" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

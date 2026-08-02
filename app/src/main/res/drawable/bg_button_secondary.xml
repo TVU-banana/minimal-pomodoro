@@ -3,14 +3,14 @@
         <shape android:shape="rectangle">
             <solid android:color="@color/clock_primary_soft" />
             <stroke android:width="1dp" android:color="@color/clock_primary" />
-            <corners android:radius="4dp" />
+            <corners android:radius="6dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@color/clock_surface_raised" />
             <stroke android:width="1dp" android:color="@color/clock_outline" />
-            <corners android:radius="4dp" />
+            <corners android:radius="6dp" />
         </shape>
     </item>
 </selector>

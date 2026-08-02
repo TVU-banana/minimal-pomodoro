@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/reading_text"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_12"
-    android:background="@drawable/bg_card"
     android:lineSpacingExtra="4dp"
-    android:fontFamily="sans-serif"
-    android:padding="@dimen/space_20"
+    android:paddingHorizontal="@dimen/space_24"
+    android:paddingTop="@dimen/space_16"
+    android:paddingBottom="@dimen/space_8"
     android:textColor="@color/clock_on_surface"
     android:textSize="15sp" />

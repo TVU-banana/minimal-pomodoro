@@ -3,8 +3,9 @@
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowBackground">@color/clock_background</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:navigationBarColor">@color/clock_background</item>
-        <item name="android:statusBarColor">@color/clock_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:colorAccent">@color/clock_primary</item>
         <item name="colorPrimary">@color/clock_primary</item>
         <item name="colorAccent">@color/clock_primary</item>

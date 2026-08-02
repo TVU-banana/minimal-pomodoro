@@ -1,7 +1,7 @@
 <resources>
-    <color name="clock_primary">#E58A6A</color>
-    <color name="clock_on_primary">#141413</color>
-    <color name="clock_primary_soft">#3B2821</color>
+    <color name="clock_primary">#6BA3FF</color>
+    <color name="clock_on_primary">#FFFFFF</color>
+    <color name="clock_primary_soft">#1E3A6B</color>
     <color name="clock_accent">#E8E6DC</color>
     <color name="clock_background">#141413</color>
     <color name="clock_surface">#23231F</color>

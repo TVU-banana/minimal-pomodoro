@@ -79,10 +79,13 @@ internal class TimerCoordinator private constructor(
         transitionLocked(current, TimerCommand.Resume)
     }
 
-    suspend fun abort(): TimerSnapshot? = abort(expectedSessionId = null)
-
-    suspend fun abort(expectedSessionId: String?): TimerSnapshot? = mutex.withLock {
-        dispatchLocked(TimerCommand.Abort, expectedSessionId)
+    suspend fun abort(
+        expectedSessionId: String? = null,
+        reason: String? = null,
+    ): TimerSnapshot? = mutex.withLock {
+        val current = loadCurrentLocked() ?: return@withLock null
+        if (expectedSessionId != null && current.sessionId != expectedSessionId) return@withLock current
+        transitionLocked(current, TimerCommand.Abort, abortReason = reason)
     }
 
     /**
@@ -125,13 +128,14 @@ internal class TimerCoordinator private constructor(
     private suspend fun transitionLocked(
         current: TimerSnapshot,
         command: TimerCommand,
+        abortReason: String? = null,
     ): TimerSnapshot {
         val next = requireNotNull(reduce(current, command, clock, identifiers))
         if (next == current) return current
 
         if (next.stage.isActive) schedule(next) else alarmScheduler.cancel()
         val session = store.session(current.sessionId)
-        store.persist(current, next, store.updateSession(current, next, session))
+        store.persist(current, next, store.updateSession(current, next, session, abortReason))
         publish(
             next,
             alert = command == TimerCommand.PhaseDeadlineReached || command == TimerCommand.Abort,

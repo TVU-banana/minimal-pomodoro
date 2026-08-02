@@ -1,149 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:clipToPadding="false"
-    android:fillViewport="true">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <!-- Full-screen countdown canvas. Visible only while the timer is active. -->
+    <FrameLayout
+        android:id="@+id/timer_renderer_host"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="@dimen/screen_gutter"
-        android:paddingTop="@dimen/space_24"
-        android:paddingBottom="@dimen/space_40">
+        android:layout_height="match_parent"
+        android:background="@color/clock_background" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/timer_eyebrow"
-            android:textAppearance="@style/Clock.Eyebrow" />
-
-        <TextView
-            android:id="@+id/timer_task_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:fontFamily="serif"
-            android:letterSpacing="-0.02"
-            android:text="@string/timer_default_task"
-            android:textColor="@color/clock_on_surface"
-            android:textSize="32sp" />
-
-        <TextView
-            android:id="@+id/timer_stage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="0.06"
-            android:text="@string/timer_stage_idle"
-            android:textColor="@color/clock_primary"
-            android:textSize="13sp" />
-
-        <FrameLayout
-            android:id="@+id/timer_renderer_host"
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginTop="@dimen/space_24"
-            android:background="@drawable/bg_timer_canvas"
-            android:padding="@dimen/space_8" />
+    <!-- Configuration surface. Covers the renderer when the timer is idle or terminal. -->
+    <ScrollView
+        android:id="@+id/timer_setup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/clock_background"
+        android:clipToPadding="false"
+        android:fillViewport="true">
 
         <LinearLayout
-            android:id="@+id/timer_setup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_24"
-            android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="@dimen/space_20">
+            android:paddingHorizontal="@dimen/screen_gutter"
+            android:paddingTop="@dimen/space_24"
+            android:paddingBottom="@dimen/space_80">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="serif"
-                android:text="@string/timer_configure"
-                android:textColor="@color/clock_on_surface"
-                android:textSize="21sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_20"
-                android:labelFor="@id/task_name_input"
-                android:text="@string/task_name"
-                android:textAppearance="@style/Clock.FieldLabel" />
-
-            <EditText
-                android:id="@+id/task_name_input"
-                style="@style/Clock.Input"
-                android:layout_marginTop="6dp"
-                android:importantForAutofill="no"
-                android:inputType="textCapSentences"
-                android:maxLength="80"
-                android:text="@string/timer_default_task" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_16"
-                android:labelFor="@id/total_minutes_input"
-                android:text="@string/timer_total_minutes"
-                android:textAppearance="@style/Clock.FieldLabel" />
-
-            <EditText
-                android:id="@+id/total_minutes_input"
-                style="@style/Clock.Input"
-                android:layout_marginTop="6dp"
-                android:fontFamily="monospace"
-                android:importantForAutofill="no"
-                android:inputType="number"
-                android:maxLength="4"
-                android:text="@string/default_total_minutes" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_16"
-                android:labelFor="@id/warmup_minutes_input"
-                android:text="@string/timer_warmup_minutes"
-                android:textAppearance="@style/Clock.FieldLabel" />
-
-            <EditText
-                android:id="@+id/warmup_minutes_input"
-                style="@style/Clock.Input"
-                android:layout_marginTop="6dp"
-                android:fontFamily="monospace"
-                android:importantForAutofill="no"
-                android:inputType="number"
-                android:maxLength="3"
-                android:text="@string/default_warmup_minutes" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_16"
-                android:labelFor="@id/timer_style_input"
-                android:text="@string/timer_style"
-                android:textAppearance="@style/Clock.FieldLabel" />
-
-            <Spinner
-                android:id="@+id/timer_style_input"
+            <LinearLayout
+                android:id="@+id/tag_rows"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/bg_input"
-                android:entries="@array/timer_styles"
-                android:paddingHorizontal="@dimen/space_12"
-                android:popupBackground="@color/clock_surface_raised" />
-
-            <Button
-                android:id="@+id/choose_background"
-                style="@style/Clock.SecondaryButton"
-                android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/space_16"
-                android:text="@string/choose_background" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
 
             <TextView
                 android:id="@+id/timer_error"
@@ -155,52 +44,55 @@
                 android:textSize="14sp"
                 android:visibility="gone" />
 
-            <Button
-                android:id="@+id/timer_start"
-                style="@style/Clock.PrimaryButton"
-                android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/space_20"
-                android:text="@string/timer_start" />
         </LinearLayout>
+    </ScrollView>
 
-        <LinearLayout
-            android:id="@+id/timer_controls"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_20"
-            android:orientation="horizontal"
-            android:visibility="gone">
+    <!-- Minimal control bar docked at the bottom while the timer is active. -->
+    <LinearLayout
+        android:id="@+id/timer_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="@dimen/space_24"
+        android:visibility="gone">
 
-            <Button
-                android:id="@+id/timer_pause_resume"
-                style="@style/Clock.PrimaryButton"
-                android:layout_width="0dp"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                android:text="@string/timer_pause"
-                tools:ignore="ButtonStyle" />
+        <ImageButton
+            android:id="@+id/timer_pause_resume"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_tag_start"
+            android:src="@drawable/ic_play_white"
+            android:scaleType="center"
+            android:layout_marginEnd="24dp"
+            android:contentDescription="@string/timer_pause"
+            tools:ignore="ButtonStyle" />
 
-            <Button
-                android:id="@+id/timer_abort"
-                style="@style/Clock.SecondaryButton"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:text="@string/timer_abort"
-                android:textColor="@color/clock_danger"
-                tools:ignore="ButtonStyle" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_24"
-            android:background="@drawable/bg_note"
-            android:lineSpacingExtra="3dp"
-            android:padding="@dimen/space_16"
-            android:text="@string/timer_semantics_note"
-            android:textColor="@color/clock_on_surface"
-            android:textSize="14sp" />
+        <ImageButton
+            android:id="@+id/timer_abort"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_tag_start"
+            android:src="@drawable/ic_stop_white"
+            android:scaleType="center"
+            android:contentDescription="@string/timer_abort"
+            tools:ignore="ButtonStyle" />
     </LinearLayout>
-</ScrollView>
+
+    <!-- Floating action button for adding new tags -->
+    <ImageButton
+        android:id="@+id/add_tag"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/screen_gutter"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_add_circle"
+        android:src="@drawable/ic_add"
+        android:scaleType="center"
+        android:elevation="6dp"
+        android:stateListAnimator="@null"
+        android:contentDescription="@string/tag_add"
+        android:visibility="visible" />
+</FrameLayout>

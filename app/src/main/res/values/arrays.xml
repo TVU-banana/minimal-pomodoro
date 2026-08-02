@@ -1,8 +1,0 @@
-<resources>
-    <string-array name="timer_styles">
-        <item>@string/style_digital</item>
-        <item>@string/style_ring</item>
-        <item>@string/style_hourglass</item>
-    </string-array>
-</resources>
-

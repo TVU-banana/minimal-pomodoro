@@ -71,6 +71,8 @@ internal object OpenBackupCodec {
         "id" to string(value.id),
         "name" to string(value.name),
         "colorArgb" to value.colorArgb.toString(),
+        "totalDurationMs" to string(value.totalDurationMs.toString()),
+        "warmupDurationMs" to string(value.warmupDurationMs.toString()),
         "createdAt" to instant(value.createdAtUtcMs),
         "archivedAt" to nullableInstant(value.archivedAtUtcMs),
     )
@@ -101,6 +103,7 @@ internal object OpenBackupCodec {
         "endedAt" to nullableInstant(value.endedAtUtcMs),
         "timezoneId" to string(value.timezoneId),
         "status" to string(value.status),
+        "abortReason" to nullableString(value.abortReason),
         "createdAt" to instant(value.createdAtUtcMs),
         "updatedAt" to instant(value.updatedAtUtcMs),
     )
@@ -126,6 +129,8 @@ internal object OpenBackupCodec {
         id = fields.requiredString("id"),
         name = fields.requiredString("name"),
         colorArgb = fields.requiredLong("colorArgb"),
+        totalDurationMs = fields.optionalString("totalDurationMs")?.toLongOrNull() ?: 3_600_000L,
+        warmupDurationMs = fields.optionalString("warmupDurationMs")?.toLongOrNull() ?: 900_000L,
         createdAtUtcMs = fields.requiredInstant("createdAt"),
         archivedAtUtcMs = fields.optionalInstant("archivedAt"),
     )
@@ -156,6 +161,7 @@ internal object OpenBackupCodec {
         endedAtUtcMs = fields.optionalInstant("endedAt"),
         timezoneId = fields.requiredString("timezoneId"),
         status = fields.requiredString("status"),
+        abortReason = fields.optionalString("abortReason"),
         createdAtUtcMs = fields.requiredInstant("createdAt"),
         updatedAtUtcMs = fields.requiredInstant("updatedAt"),
     )

@@ -10,6 +10,9 @@ internal data class CategoryEntity(
     @PrimaryKey val id: String,
     val name: String,
     val colorArgb: Long,
+    val totalDurationMs: Long,
+    val warmupDurationMs: Long,
+    val dailyGoalMs: Long = 3 * 60 * 60_000L,
     val createdAtUtcMs: Long,
     val archivedAtUtcMs: Long? = null,
 )
@@ -56,6 +59,7 @@ internal data class SessionEntity(
     val endedAtUtcMs: Long?,
     val timezoneId: String,
     val status: String,
+    val abortReason: String? = null,
     val createdAtUtcMs: Long,
     val updatedAtUtcMs: Long,
 )
@@ -128,3 +132,13 @@ internal data class CategoryReportRow(
 ) {
     val investedMs: Long get() = warmupMs + focusMs
 }
+
+internal data class DayFocusRow(
+    val dayIndex: Int,
+    val totalMs: Long,
+)
+
+internal data class HourFocusRow(
+    val hourIndex: Int,
+    val totalMs: Long,
+)

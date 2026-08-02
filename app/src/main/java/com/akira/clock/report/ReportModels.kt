@@ -4,18 +4,21 @@ import com.akira.clock.data.SessionEntity
 import com.akira.clock.data.SessionPhase
 import com.akira.clock.data.SessionSegmentEntity
 import com.akira.clock.data.SessionStatus
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.temporal.TemporalAdjusters
 
-internal enum class ReportPeriod { MONTH, QUARTER, YEAR }
+internal enum class ReportPeriod { ALL_TIME, YEAR, MONTH, WEEK, DAY }
 
 internal data class TimeRange(val fromUtcMs: Long, val toUtcMs: Long)
 
 internal data class ReportRow(
     val categoryId: String,
     val categoryName: String,
+    val colorArgb: Long,
     val warmupMs: Long,
     val focusMs: Long,
     val completedCount: Int,
@@ -29,34 +32,33 @@ internal data class ReportRow(
         }
 }
 
-internal fun reportRange(
-    period: ReportPeriod,
-    anchor: LocalDate,
-    zoneId: ZoneId,
-): TimeRange {
-    val startDate = when (period) {
-        ReportPeriod.MONTH -> anchor.withDayOfMonth(1)
-        ReportPeriod.QUARTER -> {
-            val firstMonth = ((anchor.monthValue - 1) / 3) * 3 + 1
-            LocalDate.of(anchor.year, firstMonth, 1)
-        }
-        ReportPeriod.YEAR -> LocalDate.of(anchor.year, 1, 1)
+/**
+ * Resolves a [ReportPeriod] to a UTC half-open range anchored at [anchor] in [zoneId].
+ *
+ * WEEK starts on Monday (ISO 8601). ALL_TIME spans every recorded session so the report can show
+ * cumulative totals since first use.
+ */
+internal fun reportRange(period: ReportPeriod, anchor: LocalDate, zoneId: ZoneId): TimeRange =
+    when (period) {
+        ReportPeriod.ALL_TIME -> TimeRange(0L, Long.MAX_VALUE)
+        ReportPeriod.YEAR -> rangeOf(anchor.withDayOfYear(1), zoneId) { plusYears(1) }
+        ReportPeriod.MONTH -> rangeOf(anchor.withDayOfMonth(1), zoneId) { plusMonths(1) }
+        ReportPeriod.WEEK ->
+            rangeOf(anchor.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)), zoneId) { plusWeeks(1) }
+        ReportPeriod.DAY -> rangeOf(anchor, zoneId) { plusDays(1) }
     }
-    val endDate = when (period) {
-        ReportPeriod.MONTH -> startDate.plusMonths(1)
-        ReportPeriod.QUARTER -> startDate.plusMonths(3)
-        ReportPeriod.YEAR -> startDate.plusYears(1)
-    }
-    return TimeRange(
-        fromUtcMs = startDate.atStartOfDay(zoneId).toInstant().toEpochMilli(),
-        toUtcMs = endDate.atStartOfDay(zoneId).toInstant().toEpochMilli(),
+
+private fun rangeOf(start: LocalDate, zoneId: ZoneId, endStep: LocalDate.() -> LocalDate): TimeRange =
+    TimeRange(
+        fromUtcMs = start.atStartOfDay(zoneId).toInstant().toEpochMilli(),
+        toUtcMs = start.endStep().atStartOfDay(zoneId).toInstant().toEpochMilli(),
     )
-}
 
 internal fun aggregateReport(
     sessions: List<SessionEntity>,
     segments: List<SessionSegmentEntity>,
     range: TimeRange,
+    categoryColors: Map<String, Long> = emptyMap(),
 ): List<ReportRow> {
     val sessionById = sessions.associateBy { it.id }
     data class MutableRow(
@@ -94,6 +96,7 @@ internal fun aggregateReport(
         ReportRow(
             categoryId = categoryId,
             categoryName = row.name,
+            colorArgb = categoryColors[categoryId] ?: DEFAULT_TAG_COLOR,
             warmupMs = row.warmupMs,
             focusMs = row.focusMs,
             completedCount = row.completed,
@@ -104,3 +107,6 @@ internal fun aggregateReport(
 
 internal fun currentDate(zoneId: ZoneId, nowUtcMs: Long): LocalDate =
     ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowUtcMs), zoneId).toLocalDate()
+
+/** Fallback tag color when a category no longer exists at render time. */
+internal const val DEFAULT_TAG_COLOR: Long = 0xFFD95D39L

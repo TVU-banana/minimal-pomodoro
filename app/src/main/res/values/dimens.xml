@@ -6,5 +6,6 @@
     <dimen name="space_24">24dp</dimen>
     <dimen name="space_32">32dp</dimen>
     <dimen name="space_40">40dp</dimen>
+    <dimen name="space_80">80dp</dimen>
     <dimen name="screen_gutter">24dp</dimen>
 </resources>

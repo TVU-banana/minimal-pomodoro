@@ -1,23 +1,24 @@
 package com.akira.clock.ui
 
 import android.Manifest
-import android.app.ActivityManager
 import android.app.AlarmManager
-import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.Spinner
+import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -26,45 +27,41 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.akira.clock.ClockApplication
 import com.akira.clock.R
 import com.akira.clock.alarm.TimerCoordinator
-import com.akira.clock.data.BackgroundAssetRepository
+import com.akira.clock.data.CategoryEntity
 import com.akira.clock.data.ClockRepository
-import com.akira.clock.data.TimerStyle
+import com.akira.clock.data.TaskPresetEntity
 import com.akira.clock.timer.TimerSnapshot
 import com.akira.clock.timer.TimerStage
 import com.akira.clock.ui.render.TimerRendererController
 import com.akira.clock.ui.render.TimerUiState
+
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 
 /**
  * Android View adapter for the timer screen.
  *
- * Countdown calculations, renderer construction, metadata lookup, and background persistence are
- * delegated to focused collaborators. This Fragment owns only lifecycle wiring, user input, and
- * presentation updates.
+ * Tags are the primary label: each tag is a card carrying its own default total and warmup
+ * durations. While counting (warmup or focus) the screen is forced to stay awake and the countdown
+ * takes over the full screen.
  */
-class TimerFragment : Fragment(R.layout.fragment_timer) {
-    private lateinit var backgroundAssets: BackgroundAssetRepository
+class TimerFragment : Fragment(R.layout.fragment_timer), TagEditorDialogFragment.Listener,
+    PresetEditorDialogFragment.Listener, AbortReasonDialogFragment.Listener {
     private lateinit var coordinator: TimerCoordinator
     private lateinit var metadataLoader: TimerDisplayMetadataLoader
     private lateinit var rendererController: TimerRendererController
-    private lateinit var setup: LinearLayout
+    private lateinit var setup: View
     private lateinit var controls: LinearLayout
-    private lateinit var stageLabel: TextView
-    private lateinit var taskTitle: TextView
+    private lateinit var rendererHost: FrameLayout
+    private lateinit var tagRows: LinearLayout
     private lateinit var error: TextView
-    private lateinit var pauseResume: Button
-    private lateinit var startButton: Button
+    private lateinit var pauseResume: ImageButton
+    private lateinit var addTagButton: ImageButton
 
     private var snapshot: TimerSnapshot? = null
     private var taskName = ""
     private var categoryName = ""
-    private var backgroundAssetId: String? = null
-    private var backgroundFile: java.io.File? = null
-    private var timerStyle = TimerStyle.DIGITAL
-
-    private val isLowRamDevice: Boolean
-        get() = (requireContext().applicationContext
-            .getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).isLowRamDevice
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -75,30 +72,21 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
 
     private val notificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (!granted) showError(getString(R.string.notification_permission_required))
-    }
-
-    private val backgroundPicker = registerForActivityResult(
-        ActivityResultContracts.PickVisualMedia(),
-    ) { uri ->
-        if (uri != null) importBackground(uri)
-    }
+    ) { _ -> }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val app = requireActivity().application as ClockApplication
         coordinator = TimerCoordinator.get(requireContext())
-        backgroundAssets = BackgroundAssetRepository(requireContext(), app.database)
-        metadataLoader = TimerDisplayMetadataLoader(app.database, requireContext().filesDir)
+        metadataLoader = TimerDisplayMetadataLoader(app.database)
         rendererController = TimerRendererController(
             context = requireContext(),
-            host = view.findViewById<FrameLayout>(R.id.timer_renderer_host),
-            reduceMotion = shouldReduceMotion(),
+            host = view.findViewById(R.id.timer_renderer_host),
         )
         bindViews(view)
-        showRenderer(TimerStyle.DIGITAL)
+        showRenderer()
         bindActions(view)
         observeTimer()
+        observeTags(app)
         viewLifecycleOwner.lifecycleScope.launch { coordinator.restore() }
     }
 
@@ -106,35 +94,27 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         super.onStart()
         rendererController.start()
         view?.post(ticker)
-        applyKeepScreenOn()
     }
 
     override fun onStop() {
         view?.removeCallbacks(ticker)
         rendererController.stop()
-        requireActivity().window.clearFlags(
-            android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-        )
+        applyImmersive(active = false)
+        applyKeepScreenOn(counting = false)
         super.onStop()
     }
 
     private fun bindViews(view: View) {
         setup = view.findViewById(R.id.timer_setup)
         controls = view.findViewById(R.id.timer_controls)
-        stageLabel = view.findViewById(R.id.timer_stage)
-        taskTitle = view.findViewById(R.id.timer_task_title)
+        rendererHost = view.findViewById(R.id.timer_renderer_host)
+        tagRows = view.findViewById(R.id.tag_rows)
         error = view.findViewById(R.id.timer_error)
         pauseResume = view.findViewById(R.id.timer_pause_resume)
-        startButton = view.findViewById(R.id.timer_start)
+        addTagButton = view.findViewById(R.id.add_tag)
     }
 
     private fun bindActions(view: View) {
-        startButton.setOnClickListener { startTimer(view) }
-        view.findViewById<Button>(R.id.choose_background).setOnClickListener {
-            backgroundPicker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-            )
-        }
         pauseResume.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
                 runCatching {
@@ -146,12 +126,10 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
                 }.onFailure { showError(getString(R.string.timer_error_change_state)) }
             }
         }
-        view.findViewById<Button>(R.id.timer_abort).setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                runCatching { coordinator.abort() }
-                    .onFailure { showError(getString(R.string.timer_error_stop)) }
-            }
+        view.findViewById<ImageButton>(R.id.timer_abort).setOnClickListener {
+            AbortReasonDialogFragment().show(childFragmentManager, ABORT_DIALOG_TAG)
         }
+        addTagButton.setOnClickListener { showTagEditor() }
     }
 
     private fun observeTimer() {
@@ -166,18 +144,227 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         }
     }
 
-    private fun startTimer(root: View) {
-        val total = root.findViewById<EditText>(R.id.total_minutes_input)
-            .text.toString().toIntOrNull()
-        val warmup = root.findViewById<EditText>(R.id.warmup_minutes_input)
-            .text.toString().toIntOrNull()
-        val name = root.findViewById<EditText>(R.id.task_name_input).text.toString().trim()
-        if (total == null || warmup == null || total !in 1..MAX_TOTAL_MINUTES ||
-            warmup !in 0 until total
-        ) {
-            showError(getString(R.string.timer_invalid_duration))
-            return
+    private fun observeTags(app: ClockApplication) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                app.repository.observeTagGroups().collect { groups -> renderTagGroups(app, groups) }
+            }
         }
+    }
+
+    private fun renderTagGroups(app: ClockApplication, groups: List<ClockRepository.TagGroup>) {
+        tagRows.removeAllViews()
+        if (groups.isEmpty()) return
+        val density = resources.displayMetrics.density
+        groups.forEach { group ->
+            tagRows.addView(createCategoryHeader(app, group.category, density))
+            group.presets.forEach { preset ->
+                tagRows.addView(createPresetCard(app, group.category, preset, density))
+            }
+        }
+    }
+
+    private fun createCategoryHeader(
+        app: ClockApplication,
+        category: CategoryEntity,
+        density: Float,
+    ): View {
+        val context = requireContext()
+        val header = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val h = (12 * density).toInt()
+            setPadding(h, h, h, (4 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            setOnLongClickListener {
+                TagEditorDialogFragment.newInstance(
+                    category.id,
+                    category.name,
+                    category.colorArgb,
+                    category.totalDurationMs,
+                    category.warmupDurationMs,
+                    category.dailyGoalMs,
+                ).show(childFragmentManager, TAG_EDITOR_TAG)
+                true
+            }
+        }
+
+        val colorDot = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                (10 * density).toInt(),
+                (10 * density).toInt(),
+            ).apply { marginEnd = (8 * density).toInt() }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(category.colorArgb.toInt())
+            }
+        }
+
+        val name = TextView(context).apply {
+            text = category.name
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(context, R.color.clock_on_surface_muted))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+        }
+
+        val addPresetBtn = ImageButton(context).apply {
+            val size = (28 * density).toInt()
+            layoutParams = LinearLayout.LayoutParams(size, size)
+            background = null
+            setImageResource(R.drawable.ic_add)
+            scaleType = android.widget.ImageView.ScaleType.CENTER
+            setColorFilter(ContextCompat.getColor(context, R.color.clock_on_surface_muted))
+            setOnClickListener {
+                pendingPresetCategoryId = category.id
+                PresetEditorDialogFragment().show(childFragmentManager, PRESET_EDITOR_TAG)
+            }
+        }
+
+        header.addView(colorDot)
+        header.addView(name)
+        header.addView(addPresetBtn)
+        return header
+    }
+
+    private fun createPresetCard(
+        app: ClockApplication,
+        category: CategoryEntity,
+        preset: TaskPresetEntity,
+        density: Float,
+    ): View {
+        val context = requireContext()
+        val card = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundResource(R.drawable.bg_tag_row)
+            val horizontal = (16 * density).toInt()
+            val vertical = (12 * density).toInt()
+            setPadding(horizontal, vertical, horizontal, vertical)
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = (6 * density).toInt() }
+            setOnLongClickListener {
+                PresetEditorDialogFragment.newInstance(
+                    preset.id,
+                    preset.name,
+                    preset.totalDurationMs,
+                    preset.warmupDurationMs,
+                ).show(childFragmentManager, PRESET_EDITOR_TAG)
+                true
+            }
+        }
+
+        val content = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+        }
+
+        val name = TextView(context).apply {
+            text = preset.name
+            textSize = 15f
+            setTextColor(ContextCompat.getColor(context, R.color.clock_on_surface))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+
+        val bottomRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = (4 * density).toInt() }
+        }
+
+        val duration = TextView(context).apply {
+            text = formatDuration(context, preset.totalDurationMs)
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(context, R.color.clock_on_surface_muted))
+            layoutParams = LinearLayout.LayoutParams(
+                (52 * density).toInt(),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { marginEnd = (8 * density).toInt() }
+        }
+
+        val progressContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+        }
+
+        val progressBar = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
+            layoutParams = LinearLayout.LayoutParams(0, (6 * density).toInt()).apply {
+                weight = 1f
+                marginEnd = (8 * density).toInt()
+            }
+            progressDrawable = ContextCompat.getDrawable(context, R.drawable.progress_bar_fill)
+        }
+
+        val progressText = TextView(context).apply {
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(context, R.color.clock_on_surface_muted))
+            layoutParams = LinearLayout.LayoutParams(
+                (48 * density).toInt(),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val todayStart = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val todayEnd = todayStart + 24 * 60 * 60_000L
+            val progressMs = app.database.sessionDao().dailyProgressMs(category.id, todayStart, todayEnd)
+            val goalMinutes = (category.dailyGoalMs / 60_000L).toInt()
+            val progressMinutes = (progressMs / 60_000L).toInt()
+            val progressPercent = if (category.dailyGoalMs > 0) (progressMs * 100 / category.dailyGoalMs).toInt() else 0
+
+            progressBar.max = 100
+            progressBar.progress = progressPercent.coerceAtMost(100)
+            progressText.text = "$progressMinutes/$goalMinutes"
+        }
+
+        progressContainer.addView(progressBar)
+        progressContainer.addView(progressText)
+
+        bottomRow.addView(duration)
+        bottomRow.addView(progressContainer)
+
+        content.addView(name)
+        content.addView(bottomRow)
+
+        val startButtonSize = (40 * density).toInt()
+        val startButton = ImageButton(context).apply {
+            setBackgroundResource(R.drawable.bg_tag_start)
+            setImageResource(R.drawable.ic_play_white)
+            scaleType = android.widget.ImageView.ScaleType.CENTER
+            layoutParams = LinearLayout.LayoutParams(startButtonSize, startButtonSize).apply {
+                marginStart = (12 * density).toInt()
+            }
+            setOnClickListener {
+                it.isEnabled = false
+                startTimerWithPreset(category, preset)
+            }
+        }
+
+        card.addView(content)
+        card.addView(startButton)
+
+        return card
+    }
+
+    private fun startTimerWithPreset(category: CategoryEntity, preset: TaskPresetEntity) {
         val alarmManager = requireContext().getSystemService(AlarmManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             !alarmManager.canScheduleExactAlarms()
@@ -188,34 +375,108 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
 
         requestNotificationPermissionIfNeeded()
         error.isVisible = false
-        startButton.isEnabled = false
-        timerStyle = selectedStyle(root)
-        showRenderer(timerStyle)
 
+        taskName = preset.name
+        categoryName = category.name
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                coordinator.start(preset.id)
+            }.onFailure {
+                showError(getString(R.string.timer_error_start))
+            }
+        }
+    }
+
+    override fun onTagCreated(
+        name: String,
+        colorArgb: Long,
+        totalDurationMs: Long,
+        warmupDurationMs: Long,
+        dailyGoalMs: Long,
+    ) {
         val app = requireActivity().application as ClockApplication
         viewLifecycleOwner.lifecycleScope.launch {
             runCatching {
-                app.repository.ensureDefaults(
-                    nowUtcMs = System.currentTimeMillis(),
-                    defaultCategoryName = getString(R.string.timer_default_category),
-                    defaultPresetName = getString(R.string.timer_default_task),
-                )
-                val preset = app.repository.createPreset(
+                app.repository.createTag(name, colorArgb, totalDurationMs, warmupDurationMs, dailyGoalMs)
+            }.onFailure { showError(getString(R.string.tag_create_failed)) }
+        }
+    }
+
+    override fun onTagUpdated(
+        id: String,
+        name: String,
+        colorArgb: Long,
+        totalDurationMs: Long,
+        warmupDurationMs: Long,
+        dailyGoalMs: Long,
+    ) {
+        val app = requireActivity().application as ClockApplication
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                app.repository.updateTag(id, name, colorArgb, totalDurationMs, warmupDurationMs, dailyGoalMs)
+            }.onFailure { showError(getString(R.string.tag_update_failed)) }
+        }
+    }
+
+    override fun onTagDeleted(id: String) {
+        val app = requireActivity().application as ClockApplication
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                app.repository.deleteTag(id)
+            }.onFailure { showError(getString(R.string.tag_delete_failed)) }
+        }
+    }
+
+    private var pendingPresetCategoryId: String? = null
+
+    override fun onPresetCreated(name: String, totalDurationMs: Long, warmupDurationMs: Long) {
+        val categoryId = pendingPresetCategoryId ?: return
+        val app = requireActivity().application as ClockApplication
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                app.repository.createPreset(
                     name = name,
-                    categoryId = ClockRepository.DEFAULT_CATEGORY_ID,
-                    totalMinutes = total,
-                    warmupMinutes = warmup,
-                    timerStyle = timerStyle,
-                    backgroundAssetId = backgroundAssetId,
+                    categoryId = categoryId,
+                    totalMinutes = (totalDurationMs / 60_000L).toInt(),
+                    warmupMinutes = (warmupDurationMs / 60_000L).toInt(),
                     nowUtcMs = System.currentTimeMillis(),
                     unnamedTaskName = getString(R.string.timer_unnamed_task),
                 )
-                taskName = preset.name
-                coordinator.start(preset.id)
-            }.onFailure {
-                startButton.isEnabled = true
-                showError(getString(R.string.timer_error_start))
-            }
+            }.onFailure { showError("无法创建时间块") }
+        }
+    }
+
+    override fun onPresetUpdated(id: String, name: String, totalDurationMs: Long, warmupDurationMs: Long) {
+        val app = requireActivity().application as ClockApplication
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                app.repository.updatePreset(
+                    id = id,
+                    name = name,
+                    totalMinutes = (totalDurationMs / 60_000L).toInt(),
+                    warmupMinutes = (warmupDurationMs / 60_000L).toInt(),
+                )
+            }.onFailure { showError("无法更新时间块") }
+        }
+    }
+
+    override fun onPresetDeleted(id: String) {
+        val app = requireActivity().application as ClockApplication
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                app.repository.deletePreset(id)
+            }.onFailure { showError("无法删除时间块") }
+        }
+    }
+
+    private fun showTagEditor() {
+        TagEditorDialogFragment().show(childFragmentManager, TAG_EDITOR_TAG)
+    }
+
+    override fun onAbortConfirmed(reason: String?) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching { coordinator.abort(reason = reason) }
+                .onFailure { showError(getString(R.string.timer_error_stop)) }
         }
     }
 
@@ -232,23 +493,25 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
             nowElapsedMs = android.os.SystemClock.elapsedRealtime(),
         )
         rendererController.bind(uiState)
-        taskTitle.text = taskName
-        stageLabel.text = stageText(current.stage)
         val terminal = current.stage == TimerStage.Completed || current.stage == TimerStage.Aborted
-        setup.isVisible = terminal
-        controls.isVisible = !terminal
-        if (terminal) startButton.isEnabled = true
-        pauseResume.text = getString(
-            if (current.stage == TimerStage.Paused) R.string.timer_resume else R.string.timer_pause,
-        )
+        val active = !terminal
+        val counting = current.stage == TimerStage.Warmup || current.stage == TimerStage.Focus
+        setup.isVisible = !active
+        controls.isVisible = active
+        rendererHost.isVisible = active
+        addTagButton.isVisible = !active
+        applyImmersive(active)
+        applyKeepScreenOn(counting)
+        val iconRes = if (current.stage == TimerStage.Paused) R.drawable.ic_play_white else R.drawable.ic_pause_white
+        pauseResume.setImageResource(iconRes)
     }
 
     private fun bindIdle() {
-        taskTitle.setText(R.string.timer_default_task)
-        stageLabel.setText(R.string.timer_stage_idle)
         setup.isVisible = true
         controls.isVisible = false
-        startButton.isEnabled = true
+        rendererHost.isVisible = false
+        applyImmersive(active = false)
+        applyKeepScreenOn(counting = false)
         rendererController.bind(
             TimerUiState(
                 stage = TimerStage.Idle,
@@ -268,45 +531,10 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         val metadata = metadataLoader.load(current.sessionId) ?: return
         taskName = metadata.taskName.ifBlank { taskName }
         categoryName = metadata.categoryName
-        if (backgroundAssetId != metadata.backgroundAssetId || timerStyle != metadata.style) {
-            backgroundAssetId = metadata.backgroundAssetId
-            backgroundFile = metadata.backgroundFile
-            timerStyle = metadata.style
-            showRenderer(timerStyle)
-        }
     }
 
-    private fun importBackground(uri: android.net.Uri) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            runCatching {
-                val maximumEdge = if (isLowRamDevice) {
-                    LOW_RAM_BACKGROUND_EDGE
-                } else {
-                    BACKGROUND_EDGE
-                }
-                backgroundAssets.import(uri, maximumEdge)
-            }.onSuccess { asset ->
-                backgroundAssetId = asset.id
-                backgroundFile = asset.file
-                timerStyle = selectedStyle(requireView())
-                showRenderer(timerStyle)
-                Toast.makeText(
-                    requireContext(),
-                    R.string.background_ready,
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }.onFailure {
-                showError(getString(R.string.timer_error_background))
-            }
-        }
-    }
-
-    private fun selectedStyle(root: View): TimerStyle = TimerStyle.entries[
-        root.findViewById<Spinner>(R.id.timer_style_input).selectedItemPosition
-    ]
-
-    private fun showRenderer(style: TimerStyle) {
-        rendererController.show(style, backgroundFile)
+    private fun showRenderer() {
+        rendererController.show()
         renderSnapshot()
     }
 
@@ -326,37 +554,40 @@ class TimerFragment : Fragment(R.layout.fragment_timer) {
         }
     }
 
-    private fun shouldReduceMotion(): Boolean = isLowRamDevice ||
-        requireContext().getSharedPreferences(SettingsFragment.PREFERENCES, Context.MODE_PRIVATE)
-            .getBoolean(SettingsFragment.KEY_REDUCE_MOTION, false)
-
-    private fun applyKeepScreenOn() {
-        val enabled = requireContext()
-            .getSharedPreferences(SettingsFragment.PREFERENCES, Context.MODE_PRIVATE)
-            .getBoolean(SettingsFragment.KEY_KEEP_SCREEN_ON, false)
-        if (enabled) {
-            requireActivity().window.addFlags(
-                android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-            )
+    private fun applyKeepScreenOn(counting: Boolean) {
+        val window = requireActivity().window
+        if (counting) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 
-    private fun stageText(stage: TimerStage): String = getString(
-        when (stage) {
-            TimerStage.Idle -> R.string.timer_stage_idle
-            TimerStage.Warmup -> R.string.timer_stage_warmup
-            TimerStage.Focus -> R.string.timer_stage_focus
-            TimerStage.Paused -> R.string.timer_stage_paused
-            TimerStage.Completed -> R.string.timer_stage_completed
-            TimerStage.Aborted -> R.string.timer_stage_aborted
-        },
-    )
+    private fun applyImmersive(active: Boolean) {
+        val window = requireActivity().window
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        if (active) {
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+            controller.show(WindowInsetsCompat.Type.statusBars())
+            controller.isAppearanceLightStatusBars = false
+            window.statusBarColor = ContextCompat.getColor(requireContext(), R.color.clock_background)
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, true)
+            val nightMode = resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+            controller.isAppearanceLightStatusBars = !nightMode
+            window.statusBarColor = ContextCompat.getColor(requireContext(), R.color.clock_background)
+        }
+    }
 
     private companion object {
-        const val BACKGROUND_EDGE = 1_080
         const val DEFAULT_TOTAL_DURATION_MS = 60 * 60_000L
-        const val LOW_RAM_BACKGROUND_EDGE = 720
         const val MAX_TOTAL_MINUTES = 1_440
         const val UI_UPDATE_INTERVAL_MS = 1_000L
+        const val TAG_EDITOR_TAG = "tagEditor"
+        const val PRESET_EDITOR_TAG = "presetEditor"
+        const val ABORT_DIALOG_TAG = "abortReason"
     }
 }

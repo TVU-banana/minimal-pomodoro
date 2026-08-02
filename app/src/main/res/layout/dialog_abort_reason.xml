@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/space_24"
+    android:paddingTop="@dimen/space_8"
+    android:paddingBottom="4dp">
+
+    <EditText
+        android:id="@+id/abort_reason_input"
+        style="@style/Clock.Input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top|start"
+        android:hint="@string/abort_reason_hint"
+        android:importantForAutofill="no"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLength="120"
+        android:maxLines="4"
+        android:minHeight="52dp"
+        android:minLines="3"
+        android:padding="@dimen/space_16" />
+</LinearLayout>

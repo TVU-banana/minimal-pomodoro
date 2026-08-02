@@ -1,5 +1,18 @@
 # Clock engineering rules
 
+## Communication
+
+- Keep every user-facing response concise, high-density, and focused on actionable information.
+- Lead with the outcome, decision, or blocker. Omit routine narration, repeated context, generic
+  background, exhaustive logs, and low-value implementation detail unless the user requests it.
+- Prefer a short paragraph, compact list, or table over a long explanation. Add detail only when it
+  materially improves correctness, verification, or the user's next decision.
+- Keep progress updates brief and report only material findings, assumptions, changes, or blockers.
+- Use Mermaid when relationships, hierarchy, branching, or a multi-step flow become materially
+  easier to understand visually. Do not add a diagram for a simple fact, list, or linear instruction.
+- Keep diagrams minimal and accurate. Accompany them with only the prose needed to interpret or act
+  on them.
+
 ## Kotlin style
 
 - Follow the Google Android Kotlin Style Guide.
