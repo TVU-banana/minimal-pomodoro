@@ -1,0 +1,1 @@
+{"protocol":"clock-control","v":1,"id":"start-1","code":"OK","state":{"token":"next","sessionId":"s","stage":"FOCUS","remainingMs":1500000,"running":true,"taskName":"阅读\"笔记"},"presets":[],"nextOffset":null}

@@ -1,11 +1,15 @@
 package com.akira.clock.timer
 
-/** Durable domain snapshot from which all countdown values can be reconstructed. */
+/**
+ * Durable countdown state. The total includes warmup for persisted-checkpoint compatibility;
+ * formal focus is total minus warmup. Preset totals are converted at the command boundary.
+ */
 internal data class TimerSnapshot(
     val sessionId: String,
     val stage: TimerStage,
     val totalDurationMs: Long,
     val warmupDurationMs: Long,
+    val mode: TimerMode,
     val accumulatedWarmupMs: Long,
     val accumulatedFocusMs: Long,
     val phaseStartedElapsedMs: Long?,
@@ -14,8 +18,11 @@ internal data class TimerSnapshot(
     val updatedAtUtcMs: Long,
 ) {
     init {
-        require(totalDurationMs > 0)
+        require(totalDurationMs >= 0)
         require(warmupDurationMs >= 0)
-        require(warmupDurationMs < totalDurationMs)
+        require(
+            (mode == TimerMode.COUNTDOWN && warmupDurationMs < totalDurationMs) ||
+                (mode == TimerMode.STOPWATCH && totalDurationMs == 0L && warmupDurationMs == 0L),
+        )
     }
 }

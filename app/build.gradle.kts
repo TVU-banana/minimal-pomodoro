@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.room)
 }
 
+val bandSdkEnabled = providers.gradleProperty("bandSdk").orNull == "true"
+
 android {
     namespace = "com.akira.clock"
     compileSdk = 37
@@ -38,6 +40,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
+        create("bandPilot") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".bandpilot"
+            versionNameSuffix = "-band-pilot"
+            matchingFallbacks += listOf("debug")
+        }
     }
 
     compileOptions {
@@ -48,6 +56,11 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    sourceSets.getByName("main").kotlin.directories.add(
+        if (bandSdkEnabled) "src/bandSdk/java" else "src/bandStub/java",
+    )
 }
 
 room {
@@ -55,6 +68,11 @@ room {
 }
 
 dependencies {
+    if (bandSdkEnabled) {
+        val sdk = file("libs/xms-wearable-lib_1.4_release.aar")
+        require(sdk.exists()) { "Install the official Wear SDK: docs/band-control.md" }
+        implementation(files(sdk))
+    }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.fragment.ktx)

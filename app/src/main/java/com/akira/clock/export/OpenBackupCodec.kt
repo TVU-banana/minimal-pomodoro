@@ -1,7 +1,11 @@
 package com.akira.clock.export
 
-import com.akira.clock.data.CategoryEntity
 import com.akira.clock.data.AssetEntity
+import com.akira.clock.data.CategoryEntity
+import com.akira.clock.data.DailyReflectionEntity
+import com.akira.clock.data.HabitCheckInEntity
+import com.akira.clock.data.HabitEntity
+import com.akira.clock.data.HabitTargetEntity
 import com.akira.clock.data.SessionEntity
 import com.akira.clock.data.SessionSegmentEntity
 import com.akira.clock.data.TaskPresetEntity
@@ -15,6 +19,10 @@ internal data class OpenBackupFiles(
     val sessionsNdjson: ByteArray,
     val segmentsNdjson: ByteArray,
     val assetsJson: ByteArray,
+    val reflectionsNdjson: ByteArray,
+    val habitsJson: ByteArray,
+    val habitCheckInsNdjson: ByteArray,
+    val habitTargetsJson: ByteArray,
 ) {
     fun asMap(): Map<String, ByteArray> = linkedMapOf(
         CATEGORIES_FILE to categoriesJson,
@@ -22,6 +30,10 @@ internal data class OpenBackupFiles(
         SESSIONS_FILE to sessionsNdjson,
         SEGMENTS_FILE to segmentsNdjson,
         ASSETS_FILE to assetsJson,
+        REFLECTIONS_FILE to reflectionsNdjson,
+        HABITS_FILE to habitsJson,
+        HABIT_CHECK_INS_FILE to habitCheckInsNdjson,
+        HABIT_TARGETS_FILE to habitTargetsJson,
     )
 }
 
@@ -32,16 +44,41 @@ internal object OpenBackupCodec {
         return OpenBackupFiles(
             categoriesJson = encodeArray(normalized.categories.map(::categoryJson)),
             presetsJson = encodeArray(normalized.presets.map(::presetJson)),
-            sessionsNdjson = normalized.sessions.joinToString("\n", postfix = if (normalized.sessions.isEmpty()) "" else "\n", transform = ::sessionJson)
-                .toByteArray(StandardCharsets.UTF_8),
-            segmentsNdjson = normalized.segments.joinToString("\n", postfix = if (normalized.segments.isEmpty()) "" else "\n", transform = ::segmentJson)
-                .toByteArray(StandardCharsets.UTF_8),
+            sessionsNdjson = normalized.sessions.joinToString(
+                "\n",
+                postfix = if (normalized.sessions.isEmpty()) "" else "\n",
+                transform = ::sessionJson,
+            ).toByteArray(StandardCharsets.UTF_8),
+            segmentsNdjson = normalized.segments.joinToString(
+                "\n",
+                postfix = if (normalized.segments.isEmpty()) "" else "\n",
+                transform = ::segmentJson,
+            ).toByteArray(StandardCharsets.UTF_8),
             assetsJson = encodeArray(normalized.assets.map(::assetJson)),
+            reflectionsNdjson = normalized.reflections.joinToString(
+                "\n",
+                postfix = if (normalized.reflections.isEmpty()) "" else "\n",
+                transform = ::reflectionJson,
+            ).toByteArray(StandardCharsets.UTF_8),
+            habitTargetsJson = encodeArray(normalized.habitTargets.map(::habitTargetJson)),
+            habitsJson = encodeArray(normalized.habits.map(::habitJson)),
+            habitCheckInsNdjson = normalized.habitCheckIns.joinToString(
+                "\n",
+                postfix = if (normalized.habitCheckIns.isEmpty()) "" else "\n",
+                transform = ::habitCheckInJson,
+            ).toByteArray(StandardCharsets.UTF_8),
         )
     }
 
-    fun decode(files: Map<String, ByteArray>): BackupBundle {
-        val categories = decodeArray(requireFile(files, CATEGORIES_FILE), CATEGORIES_FILE, ::parseCategory)
+    fun decode(
+        files: Map<String, ByteArray>,
+        schemaVersion: Int = BACKUP_SCHEMA_VERSION,
+    ): BackupBundle {
+        val categories = decodeArray(
+            requireFile(files, CATEGORIES_FILE),
+            CATEGORIES_FILE,
+            ::parseCategory,
+        )
         val presets = decodeArray(requireFile(files, PRESETS_FILE), PRESETS_FILE, ::parsePreset)
         val sessionsSource = requireFile(files, SESSIONS_FILE).toString(StandardCharsets.UTF_8)
         val sessions = if (sessionsSource.isBlank()) emptyList() else sessionsSource.lineSequence()
@@ -50,7 +87,10 @@ internal object OpenBackupCodec {
                 try {
                     parseSession(JsonCodec.parse(line).objectValue("session"))
                 } catch (failure: BackupFormatException) {
-                    throw BackupFormatException("Invalid $SESSIONS_FILE line ${index + 1}: ${failure.message}", failure)
+                    throw BackupFormatException(
+                        "Invalid $SESSIONS_FILE line ${index + 1}: ${failure.message}",
+                        failure,
+                    )
                 }
             }.toList()
         val segmentsSource = files[SEGMENTS_FILE]?.toString(StandardCharsets.UTF_8).orEmpty()
@@ -60,11 +100,58 @@ internal object OpenBackupCodec {
                 try {
                     parseSegment(JsonCodec.parse(line).objectValue("segment"))
                 } catch (failure: BackupFormatException) {
-                    throw BackupFormatException("Invalid $SEGMENTS_FILE line ${index + 1}: ${failure.message}", failure)
+                    throw BackupFormatException(
+                        "Invalid $SEGMENTS_FILE line ${index + 1}: ${failure.message}",
+                        failure,
+                    )
                 }
             }.toList()
-        val assets = files[ASSETS_FILE]?.let { decodeArray(it, ASSETS_FILE, ::parseAsset) }.orEmpty()
-        return BackupValidator.validate(BackupBundle(categories, presets, sessions, segments, assets)).normalized()
+        val assets = files[ASSETS_FILE]?.let {
+            decodeArray(it, ASSETS_FILE, ::parseAsset)
+        }.orEmpty()
+        val reflectionsSource = files[REFLECTIONS_FILE]?.toString(StandardCharsets.UTF_8).orEmpty()
+        val reflections = reflectionsSource.lineSequence()
+            .filter { it.isNotBlank() }
+            .mapIndexed { index, line ->
+                try {
+                    parseReflection(JsonCodec.parse(line).objectValue("reflection"))
+                } catch (failure: BackupFormatException) {
+                    throw BackupFormatException(
+                        "Invalid $REFLECTIONS_FILE line ${index + 1}: ${failure.message}",
+                        failure,
+                    )
+                }
+            }.toList()
+        val habits = if (schemaVersion >= 3) {
+            decodeArray(requireFile(files, HABITS_FILE), HABITS_FILE, ::parseHabit)
+        } else {
+            emptyList()
+        }
+        val habitCheckIns = if (schemaVersion >= 3) {
+            decodeNdjson(
+                requireFile(files, HABIT_CHECK_INS_FILE),
+                HABIT_CHECK_INS_FILE,
+                { parseHabitCheckIn(it, schemaVersion) },
+            )
+        } else {
+            emptyList()
+        }
+        return BackupValidator.validate(
+            BackupBundle(
+                categories,
+                presets,
+                sessions,
+                segments,
+                assets,
+                reflections,
+                habits = habits,
+                habitCheckIns = habitCheckIns,
+                habitTargets = if (schemaVersion >= 4) {
+                    decodeArray(requireFile(files, HABIT_TARGETS_FILE),
+                        HABIT_TARGETS_FILE, ::parseHabitTarget)
+                } else emptyList(),
+            ),
+        ).normalized()
     }
 
     private fun categoryJson(value: CategoryEntity): String = objectJson(
@@ -83,6 +170,7 @@ internal object OpenBackupCodec {
         "categoryId" to string(value.categoryId),
         "totalDurationMs" to value.totalDurationMs.toString(),
         "warmupDurationMs" to value.warmupDurationMs.toString(),
+        "timerMode" to string(value.timerMode),
         "timerStyle" to string(value.timerStyle),
         "backgroundAssetId" to nullableString(value.backgroundAssetId),
         "createdAt" to instant(value.createdAtUtcMs),
@@ -125,6 +213,48 @@ internal object OpenBackupCodec {
         "createdAt" to instant(value.createdAtUtcMs),
     )
 
+    private fun reflectionJson(value: DailyReflectionEntity): String = objectJson(
+        "localDate" to string(value.localDateIso),
+        "timezoneIdAtWrite" to string(value.timezoneIdAtWrite),
+        "text" to string(value.text),
+        "createdAt" to instant(value.createdAtUtcMs),
+        "updatedAt" to instant(value.updatedAtUtcMs),
+    )
+
+    private fun habitJson(value: HabitEntity): String = objectJson(
+        "id" to string(value.id),
+        "name" to string(value.name),
+        "note" to string(value.note),
+        "sortOrder" to value.sortOrder.toString(),
+        "createdLocalDate" to string(value.createdLocalDateIso),
+        "createdAt" to instant(value.createdAtUtcMs),
+        "updatedAt" to instant(value.updatedAtUtcMs),
+        "archivedLocalDate" to nullableString(value.archivedLocalDateIso),
+    )
+
+    private fun habitTargetJson(value: HabitTargetEntity): String = objectJson(
+        "habitId" to string(value.habitId),
+        "effectiveLocalDate" to string(value.effectiveLocalDateIso),
+        "targetCount" to value.targetCount.toString(),
+        "updatedAt" to instant(value.updatedAtUtcMs),
+    )
+
+    private fun parseHabitTarget(fields: Map<String, JsonValue>) = HabitTargetEntity(
+        habitId = fields.requiredString("habitId"),
+        effectiveLocalDateIso = fields.requiredString("effectiveLocalDate"),
+        targetCount = fields.requiredInt("targetCount"),
+        updatedAtUtcMs = fields.requiredInstant("updatedAt"),
+    )
+
+    private fun habitCheckInJson(value: HabitCheckInEntity): String = objectJson(
+        "habitId" to string(value.habitId),
+        "localDate" to string(value.localDateIso),
+        "completed" to value.completed.toString(),
+        "completedCount" to value.completedCount.toString(),
+        "completedAt" to nullableInstant(value.completedAtUtcMs),
+        "updatedAt" to instant(value.updatedAtUtcMs),
+    )
+
     private fun parseCategory(fields: Map<String, JsonValue>) = CategoryEntity(
         id = fields.requiredString("id"),
         name = fields.requiredString("name"),
@@ -141,6 +271,7 @@ internal object OpenBackupCodec {
         categoryId = fields.requiredString("categoryId"),
         totalDurationMs = fields.requiredLong("totalDurationMs"),
         warmupDurationMs = fields.requiredLong("warmupDurationMs"),
+        timerMode = fields.optionalString("timerMode") ?: "COUNTDOWN",
         timerStyle = fields.requiredString("timerStyle"),
         backgroundAssetId = fields.optionalString("backgroundAssetId"),
         createdAtUtcMs = fields.requiredInstant("createdAt"),
@@ -184,12 +315,63 @@ internal object OpenBackupCodec {
         createdAtUtcMs = fields.requiredInstant("createdAt"),
     )
 
-    private fun <T> decodeArray(bytes: ByteArray, name: String, transform: (Map<String, JsonValue>) -> T): List<T> =
+    private fun parseReflection(fields: Map<String, JsonValue>) = DailyReflectionEntity(
+        localDateIso = fields.requiredString("localDate"),
+        timezoneIdAtWrite = fields.requiredString("timezoneIdAtWrite"),
+        text = fields.requiredString("text"),
+        createdAtUtcMs = fields.requiredInstant("createdAt"),
+        updatedAtUtcMs = fields.requiredInstant("updatedAt"),
+    )
+
+    private fun parseHabit(fields: Map<String, JsonValue>) = HabitEntity(
+        id = fields.requiredString("id"),
+        name = fields.requiredString("name"),
+        sortOrder = fields.requiredInt("sortOrder"),
+        createdLocalDateIso = fields.requiredString("createdLocalDate"),
+        createdAtUtcMs = fields.requiredInstant("createdAt"),
+        updatedAtUtcMs = fields.requiredInstant("updatedAt"),
+        archivedLocalDateIso = fields.optionalString("archivedLocalDate"),
+        note = fields.optionalString("note").orEmpty(),
+    )
+
+    private fun parseHabitCheckIn(
+        fields: Map<String, JsonValue>, schemaVersion: Int,
+    ) = HabitCheckInEntity(
+        habitId = fields.requiredString("habitId"),
+        localDateIso = fields.requiredString("localDate"),
+        completed = fields.requiredBoolean("completed"),
+        completedCount = if (schemaVersion >= 4) fields.requiredInt("completedCount") else {
+            if (fields.requiredBoolean("completed")) 1 else 0
+        },
+        completedAtUtcMs = fields.optionalInstant("completedAt"),
+        updatedAtUtcMs = fields.requiredInstant("updatedAt"),
+    )
+
+    private fun <T> decodeNdjson(
+        bytes: ByteArray,
+        name: String,
+        transform: (Map<String, JsonValue>) -> T,
+    ): List<T> = bytes.toString(StandardCharsets.UTF_8).lineSequence()
+        .filter { it.isNotBlank() }
+        .mapIndexed { index, line ->
+            try {
+                transform(JsonCodec.parse(line).objectValue(name))
+            } catch (failure: BackupFormatException) {
+                throw BackupFormatException("Invalid $name line ${index + 1}", failure)
+            }
+        }.toList()
+
+    private fun <T> decodeArray(
+        bytes: ByteArray,
+        name: String,
+        transform: (Map<String, JsonValue>) -> T,
+    ): List<T> =
         JsonCodec.parse(bytes.toString(StandardCharsets.UTF_8)).arrayValue(name)
             .mapIndexed { index, value -> transform(value.objectValue("$name[$index]")) }
 
     private fun encodeArray(objects: List<String>): ByteArray =
-        objects.joinToString(prefix = "[", postfix = "]", separator = ",").toByteArray(StandardCharsets.UTF_8)
+        objects.joinToString(prefix = "[", postfix = "]", separator = ",")
+            .toByteArray(StandardCharsets.UTF_8)
 
     private fun objectJson(vararg fields: Pair<String, String>): String = fields.joinToString(
         prefix = "{",
@@ -206,6 +388,14 @@ internal object OpenBackupCodec {
         files[name] ?: throw BackupFormatException("Missing required file: $name")
 }
 
+private fun Map<String, JsonValue>.requiredInt(name: String): Int {
+    val value = requiredLong(name)
+    if (value !in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+        throw BackupFormatException("$name must be a 32-bit integer")
+    }
+    return value.toInt()
+}
+
 private fun Map<String, JsonValue>.requiredInstant(name: String): Long = try {
     val source = requiredString(name)
     if (!source.endsWith('Z')) throw IllegalArgumentException("UTC designator required")
@@ -214,14 +404,15 @@ private fun Map<String, JsonValue>.requiredInstant(name: String): Long = try {
     throw BackupFormatException("$name must be an ISO-8601 UTC timestamp", failure)
 }
 
-private fun Map<String, JsonValue>.optionalInstant(name: String): Long? = optionalString(name)?.let {
-    try {
-        if (!it.endsWith('Z')) throw IllegalArgumentException("UTC designator required")
-        Instant.parse(it).toEpochMilli()
-    } catch (failure: Exception) {
-        throw BackupFormatException("$name must be an ISO-8601 UTC timestamp or null", failure)
+private fun Map<String, JsonValue>.optionalInstant(name: String): Long? =
+    optionalString(name)?.let {
+        try {
+            if (!it.endsWith('Z')) throw IllegalArgumentException("UTC designator required")
+            Instant.parse(it).toEpochMilli()
+        } catch (failure: Exception) {
+            throw BackupFormatException("$name must be an ISO-8601 UTC timestamp or null", failure)
+        }
     }
-}
 
 internal const val MANIFEST_FILE = "manifest.json"
 internal const val CATEGORIES_FILE = "categories.json"
@@ -229,3 +420,8 @@ internal const val PRESETS_FILE = "presets.json"
 internal const val SESSIONS_FILE = "sessions.ndjson"
 internal const val SEGMENTS_FILE = "segments.ndjson"
 internal const val ASSETS_FILE = "assets.json"
+internal const val REFLECTIONS_FILE = "reflections.ndjson"
+internal const val HABITS_FILE = "habits.json"
+internal const val HABIT_CHECK_INS_FILE = "habit_check_ins.ndjson"
+
+internal const val HABIT_TARGETS_FILE = "habit_targets.json"

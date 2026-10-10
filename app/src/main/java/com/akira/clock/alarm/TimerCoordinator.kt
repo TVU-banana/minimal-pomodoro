@@ -2,12 +2,22 @@ package com.akira.clock.alarm
 
 import android.content.Context
 import android.provider.Settings
+import com.akira.clock.band.BandAction
+import com.akira.clock.band.BandCode
+import com.akira.clock.band.BandCommandGate
+import com.akira.clock.band.BandControlCodec
+import com.akira.clock.band.BandReply
+import com.akira.clock.band.BandRequest
+import com.akira.clock.band.BandState
+import com.akira.clock.band.bandState
 import com.akira.clock.data.ClockDatabase
 import com.akira.clock.timer.AndroidClockSource
 import com.akira.clock.timer.ClockSource
 import com.akira.clock.timer.IdentifierSource
 import com.akira.clock.timer.TimerCommand
+import com.akira.clock.timer.TimerMode
 import com.akira.clock.timer.TimerSnapshot
+import com.akira.clock.timer.TimerStage
 import com.akira.clock.timer.UuidIdentifierSource
 import com.akira.clock.timer.reduce
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,26 +38,35 @@ internal class TimerCoordinator private constructor(
     private val clock: ClockSource,
     private val alarmScheduler: PhaseAlarmScheduler,
     private val notifications: TimerNotificationManager,
+    private val vintageAlarmPlayer: VintageAlarmPlayer,
     private val identifiers: IdentifierSource,
 ) {
     private val mutex = Mutex()
+    private val bandGate = BandCommandGate { java.util.UUID.randomUUID().toString() }
     private val mutableState = MutableStateFlow<TimerSnapshot?>(null)
 
     /** Current process-local snapshot. Room remains the durable source of truth. */
     val state: StateFlow<TimerSnapshot?> = mutableState.asStateFlow()
 
     suspend fun start(presetId: String): TimerSnapshot = mutex.withLock {
+        startLocked(presetId)
+    }
+
+    private suspend fun startLocked(presetId: String): TimerSnapshot {
         require(store.checkpoint() == null) { "A timer is already active" }
         val startContext = store.loadStartContext(presetId)
-        if (!alarmScheduler.canScheduleExactAlarms()) throw ExactAlarmUnavailableException()
+        if (startContext.preset.timerMode == TimerMode.COUNTDOWN.name &&
+            !alarmScheduler.canScheduleExactAlarms()
+        ) throw ExactAlarmUnavailableException()
 
         val next = requireNotNull(
             reduce(
                 current = null,
-                command = TimerCommand.Start(
+                command = TimerCommand.Start.forTimeBlock(
                     startContext.preset.id,
                     startContext.preset.totalDurationMs,
                     startContext.preset.warmupDurationMs,
+                    TimerMode.valueOf(startContext.preset.timerMode),
                 ),
                 clock = clock,
                 identifiers = identifiers,
@@ -56,11 +75,113 @@ internal class TimerCoordinator private constructor(
 
         // Schedule first so a process death after the Room commit cannot silently miss a deadline.
         // A stale alarm is safe because its session ID and UTC deadline are validated on delivery.
-        schedule(next)
+        if (next.mode == TimerMode.COUNTDOWN) schedule(next)
         store.persist(null, next, store.createSession(next, startContext))
         publish(next)
-        next
+        return next
     }
+
+    /**
+     * Executes validated band requests under the same lock as UI and alarm commands.
+     *
+     * Transport adapters must authenticate their peer before calling this internal entry point.
+     * Cancellation or ambiguous persistence invalidates the token; retry requires state refresh
+     * and an explicit new user action. No exported Android component exposes this method.
+     */
+    suspend fun handleBandMessage(bytes: ByteArray): ByteArray {
+        val request = BandControlCodec.decode(bytes)
+        return BandControlCodec.encode(handleBandRequest(request))
+    }
+
+    private suspend fun handleBandRequest(request: BandRequest): BandReply = mutex.withLock {
+        val current = reconcileBandStateLocked()
+        val currentState = bandStateLocked(current)
+        if (request.action == BandAction.STATE) {
+            return@withLock BandReply(request.id, BandCode.OK, currentState)
+        }
+        if (request.action == BandAction.PRESETS) {
+            val page = store.bandPresets(request.offset)
+            return@withLock BandReply(
+                request.id, BandCode.OK, currentState, page.first, page.second,
+            )
+        }
+        bandGate.replay(request, currentState)?.let { return@withLock it }
+        var code = when {
+            request.expectedToken != bandGate.token -> BandCode.STALE
+            request.action == BandAction.START && current?.stage?.isActiveOrPaused() == true ->
+                BandCode.INVALID_STATE
+            request.action != BandAction.START && current?.sessionId != request.sessionId ->
+                BandCode.STALE
+            current != null && current.mode != TimerMode.COUNTDOWN &&
+                request.action != BandAction.START -> BandCode.INVALID_STATE
+            else -> BandCode.OK
+        }
+        if (code == BandCode.OK) {
+            try {
+                when (request.action) {
+                    BandAction.START -> {
+                        val presetId = requireNotNull(request.presetId)
+                        if (!store.isBandPreset(presetId)) {
+                            code = BandCode.NOT_FOUND
+                        } else {
+                            startLocked(presetId)
+                        }
+                    }
+                    BandAction.PAUSE -> {
+                        if (current?.stage?.isActive == true) {
+                            transitionLocked(current, TimerCommand.Pause)
+                        } else code = BandCode.INVALID_STATE
+                    }
+                    BandAction.RESUME -> {
+                        if (current?.stage != TimerStage.Paused) {
+                            code = BandCode.INVALID_STATE
+                        } else if (!alarmScheduler.canScheduleExactAlarms()) {
+                            code = BandCode.ALARM_UNAVAILABLE
+                        } else transitionLocked(current, TimerCommand.Resume)
+                    }
+                    BandAction.ABORT -> {
+                        if (current?.stage?.isActiveOrPaused() == true) {
+                            transitionLocked(current, TimerCommand.Abort)
+                        } else code = BandCode.INVALID_STATE
+                    }
+                    else -> error("Read requests are handled before mutation")
+                }
+            } catch (error: ExactAlarmUnavailableException) {
+                code = BandCode.ALARM_UNAVAILABLE
+            } catch (error: Throwable) {
+                bandGate.invalidate()
+                // Re-read Room next time: a commit may have succeeded before a system
+                // effect failed.
+                mutableState.value = null
+                throw error
+            }
+        }
+        BandReply(request.id, code, bandStateLocked(mutableState.value)).also {
+            bandGate.remember(request, it)
+        }
+    }
+
+    private suspend fun reconcileBandStateLocked(): TimerSnapshot? {
+        try {
+            var current = loadCurrentLocked() ?: return null
+            while (current.mode == TimerMode.COUNTDOWN && current.stage.isActive &&
+                clock.elapsedRealtimeMs() >= requireNotNull(current.phaseDeadlineElapsedMs)
+            ) {
+                current = transitionLocked(current, TimerCommand.PhaseDeadlineReached)
+            }
+            return current
+        } catch (error: Throwable) {
+            bandGate.invalidate()
+            mutableState.value = null
+            throw error
+        }
+    }
+
+    private suspend fun bandStateLocked(snapshot: TimerSnapshot?): BandState = bandState(
+        snapshot, bandGate.token, clock.elapsedRealtimeMs(),
+        snapshot?.takeUnless { it.stage.isTerminal }
+            ?.let { store.session(it.sessionId).taskNameSnapshot.take(80) } ?: "",
+    )
 
     suspend fun pause(): TimerSnapshot? = pause(expectedSessionId = null)
 
@@ -75,7 +196,9 @@ internal class TimerCoordinator private constructor(
         if (expectedSessionId != null && current.sessionId != expectedSessionId) {
             return@withLock current
         }
-        if (!alarmScheduler.canScheduleExactAlarms()) throw ExactAlarmUnavailableException()
+        if (current.mode == TimerMode.COUNTDOWN && !alarmScheduler.canScheduleExactAlarms()) {
+            throw ExactAlarmUnavailableException()
+        }
         transitionLocked(current, TimerCommand.Resume)
     }
 
@@ -84,7 +207,9 @@ internal class TimerCoordinator private constructor(
         reason: String? = null,
     ): TimerSnapshot? = mutex.withLock {
         val current = loadCurrentLocked() ?: return@withLock null
-        if (expectedSessionId != null && current.sessionId != expectedSessionId) return@withLock current
+        if (expectedSessionId != null && current.sessionId != expectedSessionId) {
+            return@withLock current
+        }
         transitionLocked(current, TimerCommand.Abort, abortReason = reason)
     }
 
@@ -99,7 +224,9 @@ internal class TimerCoordinator private constructor(
         expectedDeadlineUtcMs: Long,
     ): TimerSnapshot? = mutex.withLock {
         var current = loadCurrentLocked() ?: return@withLock null
-        if (current.sessionId != sessionId || !current.stage.isActive) return@withLock current
+        if (current.sessionId != sessionId || !current.stage.isActive ||
+            current.mode == TimerMode.STOPWATCH
+        ) return@withLock current
         val storedDeadline = current.phaseDeadlineUtcMs ?: return@withLock current
         if (!deadlineIsEligible(expectedDeadlineUtcMs, storedDeadline)) return@withLock current
 
@@ -133,13 +260,18 @@ internal class TimerCoordinator private constructor(
         val next = requireNotNull(reduce(current, command, clock, identifiers))
         if (next == current) return current
 
-        if (next.stage.isActive) schedule(next) else alarmScheduler.cancel()
+        if (next.stage.isActive && next.mode == TimerMode.COUNTDOWN) {
+            schedule(next)
+        } else {
+            alarmScheduler.cancel()
+        }
         val session = store.session(current.sessionId)
         store.persist(current, next, store.updateSession(current, next, session, abortReason))
         publish(
             next,
             alert = command == TimerCommand.PhaseDeadlineReached || command == TimerCommand.Abort,
         )
+        if (next.stage == TimerStage.Completed) vintageAlarmPlayer.playCompletionPattern()
         return next
     }
 
@@ -149,6 +281,7 @@ internal class TimerCoordinator private constructor(
     private suspend fun restoreLocked(forceRebaseElapsedClock: Boolean): TimerSnapshot? {
         val checkpoint = store.checkpoint()
         if (checkpoint == null) {
+            if (mutableState.value != null) bandGate.invalidate()
             mutableState.value = null
             notifications.cancel()
             return null
@@ -156,12 +289,16 @@ internal class TimerCoordinator private constructor(
         var restored = store.restore(checkpoint, forceRebaseElapsedClock)
         mutableState.value = restored
 
-        while (restored.stage.isActive &&
+        while (restored.mode == TimerMode.COUNTDOWN && restored.stage.isActive &&
             clock.elapsedRealtimeMs() >= requireNotNull(restored.phaseDeadlineElapsedMs)
         ) {
             restored = transitionLocked(restored, TimerCommand.PhaseDeadlineReached)
         }
-        if (restored.stage.isActive) schedule(restored) else alarmScheduler.cancel()
+        if (restored.stage.isActive && restored.mode == TimerMode.COUNTDOWN) {
+            schedule(restored)
+        } else {
+            alarmScheduler.cancel()
+        }
         publish(restored)
         return restored
     }
@@ -175,6 +312,7 @@ internal class TimerCoordinator private constructor(
     }
 
     private fun publish(snapshot: TimerSnapshot, alert: Boolean = false) {
+        bandGate.invalidate()
         mutableState.value = snapshot
         notifications.show(snapshot, alert)
     }
@@ -204,6 +342,7 @@ internal class TimerCoordinator private constructor(
                 clock = clock,
                 alarmScheduler = AndroidPhaseAlarmScheduler(context),
                 notifications = TimerNotificationManager(context),
+                vintageAlarmPlayer = VintageAlarmPlayer(),
                 identifiers = identifiers,
             )
         }
@@ -215,3 +354,5 @@ internal fun deadlineIsEligible(
     receivedDeadlineUtcMs: Long,
     storedDeadlineUtcMs: Long,
 ): Boolean = receivedDeadlineUtcMs >= storedDeadlineUtcMs
+
+private fun TimerStage.isActiveOrPaused(): Boolean = isActive || this == TimerStage.Paused

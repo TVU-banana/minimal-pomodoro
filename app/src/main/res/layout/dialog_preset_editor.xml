@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -11,41 +15,93 @@
         style="@style/Clock.FieldLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:labelFor="@id/preset_name_input"
         android:text="@string/preset_name" />
 
     <EditText
         android:id="@+id/preset_name_input"
+        android:layout_marginTop="8dp"
         style="@style/Clock.Input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:hint="@string/preset_name_hint"
-        android:inputType="text" />
+        android:importantForAutofill="no"
+        android:inputType="textCapSentences" />
+
+    <CheckBox
+        android:id="@+id/preset_stopwatch_input"
+        android:minHeight="48dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/preset_mode_stopwatch" />
 
     <TextView
+        android:id="@+id/preset_total_label"
         style="@style/Clock.FieldLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="16dp"
+        android:labelFor="@id/preset_total_input"
         android:text="@string/timer_total_minutes" />
 
     <EditText
         android:id="@+id/preset_total_input"
+        android:layout_marginTop="8dp"
         style="@style/Clock.Input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:inputType="number" />
+
+    <TextView
+        android:id="@+id/preset_warmup_label"
+        style="@style/Clock.FieldLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:labelFor="@id/preset_warmup_input"
+        android:text="@string/timer_warmup_minutes" />
+
+    <EditText
+        android:id="@+id/preset_warmup_input"
+        android:layout_marginTop="8dp"
+        style="@style/Clock.Input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:inputType="number" />
 
     <TextView
         style="@style/Clock.FieldLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/timer_warmup_minutes" />
+        android:layout_marginTop="16dp"
+        android:text="@string/tag_section" />
+
+    <LinearLayout
+        android:id="@+id/preset_tags_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+    <TextView
+        style="@style/Clock.FieldLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:labelFor="@id/preset_new_tag_input"
+        android:text="@string/preset_new_tag_label" />
 
     <EditText
-        android:id="@+id/preset_warmup_input"
+        android:id="@+id/preset_new_tag_input"
         style="@style/Clock.Input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="number" />
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tag_add_inline"
+        android:inputType="textCapSentences" />
 </LinearLayout>
+</ScrollView>

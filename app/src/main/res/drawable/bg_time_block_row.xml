@@ -1,0 +1,11 @@
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/clock_ripple">
+    <item>
+        <layer-list>
+            <item android:drawable="@color/clock_background" />
+            <item android:height="1dp" android:gravity="bottom">
+                <shape><solid android:color="@color/clock_outline_soft" /></shape>
+            </item>
+        </layer-list>
+    </item>
+</ripple>

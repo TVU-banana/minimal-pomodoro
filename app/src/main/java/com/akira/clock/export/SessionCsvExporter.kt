@@ -5,14 +5,21 @@ import java.time.Instant
 
 internal object SessionCsvExporter {
     private val header = listOf(
-        "id", "presetId", "categoryId", "categoryName", "taskName", "plannedTotalMs", "plannedWarmupMs",
-        "actualWarmupMs", "actualFocusMs", "startedAt", "endedAt", "timezoneId", "status", "updatedAt",
+        "id", "presetId", "categoryId", "categoryName", "taskName",
+        "plannedTotalMs", "plannedWarmupMs", "actualWarmupMs", "actualFocusMs",
+        "startedAt", "endedAt", "timezoneId", "status", "updatedAt",
     )
 
-    /** RFC 4180, UTF-8 when the returned String is encoded, CRLF records, deterministic ordering. */
+    /**
+     * RFC 4180, UTF-8 when the returned String is encoded, CRLF records,
+     * deterministic ordering.
+     */
     fun export(sessions: List<SessionEntity>): String = buildString {
         appendRecord(header)
-        sessions.sortedWith(compareBy(SessionEntity::startedAtUtcMs, SessionEntity::id)).forEach { session ->
+        val sortedSessions = sessions.sortedWith(
+            compareBy(SessionEntity::startedAtUtcMs, SessionEntity::id)
+        )
+        sortedSessions.forEach { session ->
             appendRecord(
                 listOf(
                     session.id,
@@ -42,7 +49,10 @@ internal object SessionCsvExporter {
         append("\r\n")
     }
 
-    private fun escape(value: String): String = if (value.any { it == ',' || it == '"' || it == '\r' || it == '\n' }) {
-        "\"${value.replace("\"", "\"\"")}\""
-    } else value
+    private fun escape(value: String): String =
+        if (value.any { it == ',' || it == '"' || it == '\r' || it == '\n' }) {
+            "\"${value.replace("\"", "\"\"")}\""
+        } else {
+            value
+        }
 }

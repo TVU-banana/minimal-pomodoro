@@ -1,15 +1,24 @@
 <resources>
-    <color name="clock_primary">#6BA3FF</color>
-    <color name="clock_on_primary">#FFFFFF</color>
-    <color name="clock_primary_soft">#1E3A6B</color>
-    <color name="clock_accent">#E8E6DC</color>
-    <color name="clock_background">#141413</color>
-    <color name="clock_surface">#23231F</color>
-    <color name="clock_surface_raised">#2B2B26</color>
-    <color name="clock_on_surface">#FAF9F5</color>
-    <color name="clock_on_surface_muted">#B0AEA5</color>
-    <color name="clock_disabled">#87867F</color>
-    <color name="clock_outline">#4A4944</color>
-    <color name="clock_outline_soft">#32322E</color>
-    <color name="clock_danger">#F09A8E</color>
+    <color name="clock_primary">#ABC2FF</color>
+    <color name="clock_on_primary">#14254D</color>
+    <color name="clock_primary_soft">#26334E</color>
+    <color name="clock_tag_chip_background">#303034</color>
+    <color name="clock_tag_chip_text">#C4C4C8</color>
+    <color name="clock_accent">#E5E5E7</color>
+    <color name="clock_background">#1B1B1D</color>
+    <color name="clock_surface">#262628</color>
+    <color name="clock_surface_raised">#2E2E31</color>
+    <color name="clock_on_surface">#F2F2F3</color>
+    <color name="clock_on_surface_muted">#B8B8BC</color>
+    <color name="clock_disabled">#8B8B90</color>
+    <color name="clock_outline">#5D5D63</color>
+    <color name="clock_outline_soft">#37373B</color>
+    <color name="heatmap_level_1">#293D62</color>
+    <color name="heatmap_level_2">#435E91</color>
+    <color name="heatmap_level_3">#7294D5</color>
+    <color name="heatmap_level_4">#ABC2FF</color>
+    <color name="clock_danger">#FFB4A8</color>
+    <color name="clock_primary_pressed">#C5D4FF</color>
+    <color name="clock_ripple">#26ABC2FF</color>
+    <color name="clock_toolbar_glass">#B31B1B1D</color>
 </resources>

@@ -5,6 +5,12 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data access operations for category tags.
+ *
+ * Categories represent user-defined task tags with color, custom duration defaults, and
+ * daily goals. Soft-deleted categories retain archived timestamps to preserve historical records.
+ */
 @Dao
 internal interface CategoryDao {
     @Upsert
@@ -26,8 +32,24 @@ internal interface CategoryDao {
     suspend fun archive(id: String, archivedAtUtcMs: Long)
 }
 
+/**
+ * Data access operations for configured time block presets.
+ *
+ * Presets pre-populate the timer with planned duration and tag associations. Presets link
+ * to categories through foreign keys and cascade on preset deletion.
+ */
 @Dao
 internal interface TaskPresetDao {
+    @Query(
+        """
+        SELECT task_presets.* FROM task_presets
+        JOIN categories ON categories.id = task_presets.categoryId
+        WHERE categories.archivedAtUtcMs IS NULL AND task_presets.timerMode = 'COUNTDOWN'
+        ORDER BY task_presets.id LIMIT 5 OFFSET :offset
+        """,
+    )
+    suspend fun bandPage(offset: Int): List<TaskPresetEntity>
+
     @Upsert
     suspend fun upsert(preset: TaskPresetEntity)
 
@@ -53,6 +75,32 @@ internal interface TaskPresetDao {
     suspend fun delete(id: String)
 }
 
+/**
+ * Junction table operations linking task presets to additional categories (tags).
+ *
+ * Maintains the many-to-many relationship allowing presets to associate with multiple tags.
+ */
+@Dao
+internal interface TaskPresetTagDao {
+    @Upsert
+    suspend fun upsertAll(tags: List<TaskPresetTagEntity>)
+
+    @Query("DELETE FROM task_preset_tags WHERE presetId = :presetId")
+    suspend fun deleteForPreset(presetId: String)
+
+    @Query("SELECT * FROM task_preset_tags WHERE presetId = :presetId ORDER BY categoryId")
+    suspend fun listForPreset(presetId: String): List<TaskPresetTagEntity>
+
+    @Query("SELECT * FROM task_preset_tags")
+    fun observeAll(): Flow<List<TaskPresetTagEntity>>
+}
+
+/**
+ * Data access operations for completed, aborted, and running timer sessions.
+ *
+ * Serves as the primary source of truth for focus history and daily progress. Queries
+ * filtering by time bounds leverage the SQLite index on [startedAtUtcMs].
+ */
 @Dao
 internal interface SessionDao {
     @Upsert
@@ -63,6 +111,15 @@ internal interface SessionDao {
 
     @Query("SELECT * FROM sessions ORDER BY startedAtUtcMs DESC, id DESC")
     fun observeAll(): Flow<List<SessionEntity>>
+
+    @Query(
+        """
+        SELECT * FROM sessions
+        WHERE startedAtUtcMs >= :fromUtcMs AND startedAtUtcMs < :toUtcMs
+        ORDER BY startedAtUtcMs, id
+        """,
+    )
+    fun observeInRange(fromUtcMs: Long, toUtcMs: Long): Flow<List<SessionEntity>>
 
     @Query("SELECT * FROM sessions ORDER BY startedAtUtcMs, id")
     suspend fun allForExport(): List<SessionEntity>
@@ -96,8 +153,7 @@ internal interface SessionDao {
         """
         SELECT COALESCE(SUM(
             CASE
-                WHEN status = 'COMPLETED' THEN plannedTotalMs
-                WHEN status = 'ABORTED' AND actualFocusMs >= plannedWarmupMs THEN actualFocusMs
+                WHEN status IN ('COMPLETED', 'ABORTED') THEN actualFocusMs
                 ELSE 0
             END
         ), 0) AS totalFocusMs
@@ -112,17 +168,21 @@ internal interface SessionDao {
 
     @Query(
         """
-        SELECT CAST((startedAtUtcMs - :dayStartMs) / 3600000 AS INT) AS hourIndex,
-               COALESCE(SUM(actualFocusMs), 0) AS totalMs
+        SELECT COALESCE(SUM(
+            CASE
+                WHEN sessions.status IN ('COMPLETED', 'ABORTED') THEN sessions.actualFocusMs
+                ELSE 0
+            END
+        ), 0)
         FROM sessions
-        WHERE startedAtUtcMs >= :dayStartMs
-          AND startedAtUtcMs < :dayEndMs
-          AND status IN ('COMPLETED', 'ABORTED')
-        GROUP BY hourIndex
-        ORDER BY hourIndex
+        JOIN task_preset_tags ON task_preset_tags.presetId = sessions.presetId
+        WHERE task_preset_tags.categoryId = :categoryId
+          AND sessions.startedAtUtcMs >= :fromUtcMs
+          AND sessions.startedAtUtcMs < :toUtcMs
+          AND sessions.status IN ('COMPLETED', 'ABORTED')
         """,
     )
-    suspend fun focusByHour(dayStartMs: Long, dayEndMs: Long): List<HourFocusRow>
+    suspend fun dailyProgressForTagMs(categoryId: String, fromUtcMs: Long, toUtcMs: Long): Long
 
     @Query(
         """
@@ -139,6 +199,12 @@ internal interface SessionDao {
     suspend fun focusByDayIndex(rangeStartMs: Long, rangeEndMs: Long): List<DayFocusRow>
 }
 
+/**
+ * Data access operations for granular timer activity segments (warmup and focus intervals).
+ *
+ * Segments link to parent sessions via foreign keys with cascade deletion. Used for exact
+ * cross-midnight and hourly report aggregations.
+ */
 @Dao
 internal interface SessionSegmentDao {
     @Upsert
@@ -147,19 +213,32 @@ internal interface SessionSegmentDao {
     @Upsert
     suspend fun upsertAll(segments: List<SessionSegmentEntity>)
 
-    @Query("SELECT * FROM session_segments WHERE sessionId = :sessionId AND endedAtUtcMs IS NULL LIMIT 1")
+    @Query(
+        "SELECT * FROM session_segments " +
+            "WHERE sessionId = :sessionId AND endedAtUtcMs IS NULL LIMIT 1"
+    )
     suspend fun openForSession(sessionId: String): SessionSegmentEntity?
 
     @Query("DELETE FROM session_segments WHERE sessionId = :sessionId")
     suspend fun deleteForSession(sessionId: String)
 
-    @Query("SELECT * FROM session_segments WHERE startedAtUtcMs < :toUtcMs AND COALESCE(endedAtUtcMs, :toUtcMs) > :fromUtcMs ORDER BY startedAtUtcMs")
+    @Query(
+        "SELECT * FROM session_segments " +
+            "WHERE startedAtUtcMs < :toUtcMs AND COALESCE(endedAtUtcMs, :toUtcMs) > :fromUtcMs " +
+            "ORDER BY startedAtUtcMs"
+    )
     suspend fun overlapping(fromUtcMs: Long, toUtcMs: Long): List<SessionSegmentEntity>
 
     @Query("SELECT * FROM session_segments ORDER BY startedAtUtcMs, id")
     suspend fun allForExport(): List<SessionSegmentEntity>
 }
 
+/**
+ * Singleton table storing the in-flight timer state for process death and reboot recovery.
+ *
+ * Contains exactly zero or one row with singletonId = 1, managed inside Room transactions
+ * by TimerTransitionStore.
+ */
 @Dao
 internal interface TimerCheckpointDao {
     @Upsert
@@ -172,6 +251,11 @@ internal interface TimerCheckpointDao {
     suspend fun delete()
 }
 
+/**
+ * Data access operations for background image assets.
+ *
+ * Tracks unique media files by SHA-256 checksum and reference counts for cleanup.
+ */
 @Dao
 internal interface AssetDao {
     @Upsert
@@ -188,4 +272,25 @@ internal interface AssetDao {
 
     @Query("SELECT * FROM assets ORDER BY id")
     suspend fun allForExport(): List<AssetEntity>
+}
+
+/**
+ * Data access operations for user reflections keyed by local calendar day (ISO-8601 string).
+ */
+@Dao
+internal interface DailyReflectionDao {
+    @Query("SELECT * FROM daily_reflections WHERE localDateIso = :date LIMIT 1")
+    suspend fun get(date: String): DailyReflectionEntity?
+
+    @Upsert
+    suspend fun upsert(reflection: DailyReflectionEntity)
+
+    @Upsert
+    suspend fun upsertAll(reflections: List<DailyReflectionEntity>)
+
+    @Query("DELETE FROM daily_reflections WHERE localDateIso = :date")
+    suspend fun delete(date: String)
+
+    @Query("SELECT * FROM daily_reflections ORDER BY localDateIso, updatedAtUtcMs")
+    suspend fun allForExport(): List<DailyReflectionEntity>
 }

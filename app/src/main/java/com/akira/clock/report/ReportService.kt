@@ -21,7 +21,8 @@ internal class ReportService(private val database: ClockDatabase) {
         zoneId: ZoneId,
     ): ReportData {
         val range = reportRange(period, anchor, zoneId)
-        val categoryColors = database.categoryDao().allForExport().associate { it.id to it.colorArgb }
+        val categoryColors = database.categoryDao().allForExport()
+            .associate { it.id to it.colorArgb }
         val allSessions = database.sessionDao().allForExport()
         val rows = aggregateReport(
             sessions = allSessions,
@@ -32,7 +33,9 @@ internal class ReportService(private val database: ClockDatabase) {
         // Session-level detail (the former history list), newest first.
         val sessions = allSessions
             .filter { it.startedAtUtcMs in range.fromUtcMs until range.toUtcMs }
-            .filter { it.status == SessionStatus.COMPLETED.name || it.status == SessionStatus.ABORTED.name }
+            .filter {
+                it.status == SessionStatus.COMPLETED.name || it.status == SessionStatus.ABORTED.name
+            }
             .sortedByDescending { it.startedAtUtcMs }
         return ReportData(rows, sessions, categoryColors)
     }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:labelFor="@id/habit_name_input" android:text="@string/habit_name_label"
+            android:textColor="@color/clock_on_surface_muted" android:textSize="14sp" />
+        <EditText android:id="@+id/habit_name_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:minHeight="52dp"
+            android:background="@drawable/bg_input"
+            android:inputType="textCapSentences" android:maxLength="120" android:maxLines="3"
+            android:importantForAutofill="no"
+            android:padding="12dp" android:textColor="@color/clock_on_surface"
+            android:textColorHint="@color/clock_on_surface_muted" android:textSize="16sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:labelFor="@id/habit_target_input"
+            android:text="@string/habit_target_label" android:textSize="14sp"
+            android:textColor="@color/clock_on_surface_muted" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="56dp"
+            android:layout_marginTop="8dp" android:orientation="horizontal"
+            android:gravity="center_vertical" android:background="@drawable/bg_habit_target_group">
+            <Button android:id="@+id/habit_target_minus" android:layout_width="56dp"
+                android:layout_height="match_parent" android:minWidth="48dp" android:padding="0dp"
+                android:background="?attr/selectableItemBackground"
+                android:text="@string/habit_target_minus" android:textSize="26sp"
+                android:textColor="@color/clock_on_surface"
+                android:contentDescription="@string/habit_target_decrease" />
+            <View android:layout_width="1dp" android:layout_height="28dp"
+                android:background="@color/clock_outline_soft" />
+            <EditText android:id="@+id/habit_target_input" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1"
+                android:background="@null" android:inputType="number"
+                android:maxLength="2" android:maxLines="1" android:gravity="center"
+                android:importantForAutofill="no" android:padding="8dp"
+                android:textColor="@color/clock_on_surface" android:textSize="16sp" />
+            <View android:layout_width="1dp" android:layout_height="28dp"
+                android:background="@color/clock_outline_soft" />
+            <Button android:id="@+id/habit_target_plus" android:layout_width="56dp"
+                android:layout_height="match_parent" android:minWidth="48dp" android:padding="0dp"
+                android:background="?attr/selectableItemBackground"
+                android:text="@string/habit_target_plus" android:textSize="26sp"
+                android:textColor="@color/clock_on_surface"
+                android:contentDescription="@string/habit_target_increase" />
+        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:labelFor="@id/habit_note_input"
+            android:text="@string/habit_note_label"
+            android:textColor="@color/clock_on_surface_muted" android:textSize="14sp" />
+        <EditText android:id="@+id/habit_note_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:minHeight="80dp"
+            android:background="@drawable/bg_input" android:gravity="top|start"
+            android:inputType="textCapSentences|textMultiLine" android:maxLength="1000"
+            android:importantForAutofill="no" android:hint="@string/habit_note_hint"
+            android:padding="12dp" android:textColor="@color/clock_on_surface"
+            android:textColorHint="@color/clock_on_surface_muted" android:textSize="16sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="@string/habit_editor_hint"
+            android:textColor="@color/clock_on_surface_muted" android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>

@@ -4,122 +4,86 @@
     android:layout_height="match_parent"
     android:clipToPadding="false"
     android:fillViewport="true">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="@dimen/screen_gutter"
-        android:paddingTop="@dimen/space_24"
-        android:paddingBottom="@dimen/space_40">
-
+        android:paddingTop="16dp"
+        android:paddingBottom="32dp">
+        <Button
+            android:id="@+id/connect_band"
+            style="@style/Clock.SegmentOption"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/band_connect"
+            android:visibility="gone" />
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/settings_theme_section"
             android:textAppearance="@style/Clock.FieldLabel" />
-
         <RadioGroup
             android:id="@+id/theme_radio_group"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:orientation="horizontal">
-
-            <RadioButton
-                android:id="@+id/theme_system"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/settings_theme_system" />
-
-            <RadioButton
-                android:id="@+id/theme_light"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_segment_group"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <RadioButton android:id="@+id/theme_light" style="@style/Clock.SegmentOption"
                 android:text="@string/settings_theme_light" />
-
-            <RadioButton
-                android:id="@+id/theme_dark"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+            <RadioButton android:id="@+id/theme_dark" style="@style/Clock.SegmentOption"
                 android:text="@string/settings_theme_dark" />
         </RadioGroup>
-
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_24"
+            android:layout_marginTop="32dp"
             android:text="@string/settings_data_section"
             android:textAppearance="@style/Clock.FieldLabel" />
-
-        <Button
-            android:id="@+id/export_backup"
-            style="@style/Clock.SecondaryButton"
-            android:layout_width="match_parent"
-            android:layout_marginTop="@dimen/space_8"
-            android:text="@string/settings_export" />
-
-        <Button
-            android:id="@+id/save_durable_archive"
-            style="@style/Clock.SecondaryButton"
-            android:layout_width="match_parent"
-            android:layout_marginTop="@dimen/space_12"
-            android:text="@string/settings_save_durable_archive" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:text="@string/settings_durable_archive_hint"
-            android:textColor="@color/clock_on_surface_muted"
-            android:textSize="13sp" />
-
-        <Button
-            android:id="@+id/delete_durable_archive"
-            style="@style/Clock.SecondaryButton"
-            android:layout_width="match_parent"
-            android:layout_marginTop="@dimen/space_12"
-            android:text="@string/settings_delete_durable_archive" />
-
-        <Button
-            android:id="@+id/export_csv"
-            style="@style/Clock.SecondaryButton"
-            android:layout_width="match_parent"
-            android:layout_marginTop="@dimen/space_12"
-            android:text="@string/settings_export_csv" />
-
-        <Button
-            android:id="@+id/import_backup"
-            style="@style/Clock.SecondaryButton"
-            android:layout_width="match_parent"
-            android:layout_marginTop="@dimen/space_12"
-            android:text="@string/settings_import" />
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_24"
+            android:layout_marginTop="16dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="@dimen/space_20">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="serif"
-                android:text="@string/extended_reading_title"
-                android:textColor="@color/clock_on_surface"
-                android:textSize="18sp" />
-
-            <Button
-                android:id="@+id/read_more"
-                style="@style/Clock.SecondaryButton"
-                android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/space_16"
-                android:text="@string/extended_reading_more" />
+            android:showDividers="middle"
+            android:divider="@drawable/divider_settings">
+            <Button android:id="@+id/export_backup" style="@style/Clock.SettingsRow"
+                android:text="@string/settings_export" />
+            <Button android:id="@+id/export_csv" style="@style/Clock.SettingsRow"
+                android:text="@string/settings_export_csv" />
+            <Button android:id="@+id/import_backup" style="@style/Clock.SettingsRow"
+                android:text="@string/settings_import" />
         </LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="@string/settings_archive_section"
+            android:textAppearance="@style/Clock.FieldLabel" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:showDividers="middle"
+            android:divider="@drawable/divider_settings">
+            <Button android:id="@+id/save_durable_archive" style="@style/Clock.SettingsRow"
+                android:text="@string/settings_save_durable_archive" />
+            <Button android:id="@+id/delete_durable_archive" style="@style/Clock.SettingsRow"
+                android:text="@string/settings_delete_durable_archive"
+                android:textColor="@color/clock_danger" />
+        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="32dp" android:text="@string/settings_other_section"
+            android:textAppearance="@style/Clock.FieldLabel" />
+        <Button android:id="@+id/read_more" style="@style/Clock.SettingsRow"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card"
+            android:text="@string/extended_reading_title" />
     </LinearLayout>
 </ScrollView>

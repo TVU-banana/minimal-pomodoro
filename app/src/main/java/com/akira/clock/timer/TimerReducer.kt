@@ -45,10 +45,16 @@ private fun startSession(
     identifiers: IdentifierSource,
 ): TimerSnapshot {
     require(command.presetId.isNotBlank()) { "presetId must not be blank" }
-    require(command.totalDurationMs > 0L) { "totalDurationMs must be positive" }
-    require(command.warmupDurationMs >= 0L) { "warmupDurationMs must not be negative" }
-    require(command.warmupDurationMs < command.totalDurationMs) {
-        "warmupDurationMs must be shorter than totalDurationMs"
+    if (command.mode == TimerMode.COUNTDOWN) {
+        require(command.totalDurationMs > 0L) { "totalDurationMs must be positive" }
+        require(command.warmupDurationMs >= 0L) { "warmupDurationMs must not be negative" }
+        require(command.warmupDurationMs < command.totalDurationMs) {
+            "warmupDurationMs must be shorter than totalDurationMs"
+        }
+    } else {
+        require(command.totalDurationMs == 0L && command.warmupDurationMs == 0L) {
+            "A stopwatch cannot have a planned duration or warmup"
+        }
     }
 
     val nowElapsedMs = clock.elapsedRealtimeMs()
@@ -65,11 +71,20 @@ private fun startSession(
         stage = stage,
         totalDurationMs = command.totalDurationMs,
         warmupDurationMs = command.warmupDurationMs,
+        mode = command.mode,
         accumulatedWarmupMs = 0L,
         accumulatedFocusMs = 0L,
         phaseStartedElapsedMs = nowElapsedMs,
-        phaseDeadlineElapsedMs = nowElapsedMs + phaseDurationMs,
-        phaseDeadlineUtcMs = nowUtcMs + phaseDurationMs,
+        phaseDeadlineElapsedMs = if (command.mode == TimerMode.COUNTDOWN) {
+            nowElapsedMs + phaseDurationMs
+        } else {
+            null
+        },
+        phaseDeadlineUtcMs = if (command.mode == TimerMode.COUNTDOWN) {
+            nowUtcMs + phaseDurationMs
+        } else {
+            null
+        },
         updatedAtUtcMs = nowUtcMs,
     )
 }
@@ -97,7 +112,11 @@ private fun TimerSnapshot.pauseAt(
         TimerStage.Focus -> copy(
             stage = TimerStage.Paused,
             accumulatedFocusMs =
-                (accumulatedFocusMs + elapsedInPhaseMs).coerceAtMost(focusDurationMs),
+            if (mode == TimerMode.COUNTDOWN) {
+                (accumulatedFocusMs + elapsedInPhaseMs).coerceAtMost(focusDurationMs)
+            } else {
+                accumulatedFocusMs + elapsedInPhaseMs
+            },
             phaseStartedElapsedMs = null,
             phaseDeadlineElapsedMs = null,
             phaseDeadlineUtcMs = null,
@@ -128,14 +147,25 @@ private fun TimerSnapshot.resumeAt(
     return copy(
         stage = resumedStage,
         phaseStartedElapsedMs = nowElapsedMs,
-        phaseDeadlineElapsedMs = nowElapsedMs + phaseRemainingMs,
-        phaseDeadlineUtcMs = nowUtcMs + phaseRemainingMs,
+        phaseDeadlineElapsedMs = if (mode == TimerMode.COUNTDOWN) {
+            nowElapsedMs + phaseRemainingMs
+        } else {
+            null
+        },
+        phaseDeadlineUtcMs = if (mode == TimerMode.COUNTDOWN) {
+            nowUtcMs + phaseRemainingMs
+        } else {
+            null
+        },
         updatedAtUtcMs = nowUtcMs,
     )
 }
 
 private fun TimerSnapshot.advancePhase(clock: ClockSource): TimerSnapshot {
-    require(stage == TimerStage.Warmup || stage == TimerStage.Focus) {
+    require(
+        mode == TimerMode.COUNTDOWN &&
+            (stage == TimerStage.Warmup || stage == TimerStage.Focus)
+    ) {
         "Only an active timer can advance its phase"
     }
 
@@ -185,7 +215,11 @@ private fun TimerSnapshot.abortAt(
             stage == TimerStage.Paused,
     ) { "Only an active or paused timer can be aborted" }
 
-    val elapsedInPhaseMs = if (stage == TimerStage.Paused) 0L else elapsedInCurrentPhase(nowElapsedMs)
+    val elapsedInPhaseMs = if (stage == TimerStage.Paused) {
+        0L
+    } else {
+        elapsedInCurrentPhase(nowElapsedMs)
+    }
     return copy(
         stage = TimerStage.Aborted,
         accumulatedWarmupMs = if (stage == TimerStage.Warmup) {
@@ -194,7 +228,11 @@ private fun TimerSnapshot.abortAt(
             accumulatedWarmupMs
         },
         accumulatedFocusMs = if (stage == TimerStage.Focus) {
-            (accumulatedFocusMs + elapsedInPhaseMs).coerceAtMost(focusDurationMs)
+            if (mode == TimerMode.COUNTDOWN) {
+                (accumulatedFocusMs + elapsedInPhaseMs).coerceAtMost(focusDurationMs)
+            } else {
+                accumulatedFocusMs + elapsedInPhaseMs
+            }
         } else {
             accumulatedFocusMs
         },
@@ -207,8 +245,8 @@ private fun TimerSnapshot.abortAt(
 
 private fun TimerSnapshot.elapsedInCurrentPhase(nowElapsedMs: Long): Long {
     val startedElapsedMs = requireNotNull(phaseStartedElapsedMs)
-    val deadlineElapsedMs = requireNotNull(phaseDeadlineElapsedMs)
-    val effectiveNowMs = nowElapsedMs.coerceAtMost(deadlineElapsedMs)
+    val deadlineElapsedMs = phaseDeadlineElapsedMs
+    val effectiveNowMs = deadlineElapsedMs?.let(nowElapsedMs::coerceAtMost) ?: nowElapsedMs
     return (effectiveNowMs - startedElapsedMs).coerceAtLeast(0L)
 }
 

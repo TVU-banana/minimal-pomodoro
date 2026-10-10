@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.akira.clock.ui.BackdropBlurToolbar xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/timer_toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:elevation="2dp"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="7dp">
+    <com.akira.clock.ui.TodayProgressView
+        android:id="@+id/today_progress"
+        android:layout_width="0dp"
+        android:layout_height="42dp"
+        android:layout_weight="1"
+        android:layout_marginEnd="12dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true" />
+    <com.akira.clock.ui.ThemeToggleButtonView
+        android:id="@+id/timer_theme_toggle"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:background="@drawable/bg_toolbar_icon_button"
+        android:contentDescription="@string/theme_toggle_accessibility" />
+    <ImageButton
+        android:id="@+id/manage_tags"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_toolbar_icon_button"
+        android:contentDescription="@string/tag_manage"
+        android:padding="12dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_manage_tags"
+        app:tint="@color/clock_on_surface_muted" />
+    <ImageButton
+        android:id="@+id/add_time_block"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_toolbar_icon_button"
+        android:contentDescription="@string/preset_new"
+        android:padding="12dp"
+        android:src="@drawable/ic_add_preset_thin"
+        app:tint="@color/clock_on_surface_muted" />
+</com.akira.clock.ui.BackdropBlurToolbar>

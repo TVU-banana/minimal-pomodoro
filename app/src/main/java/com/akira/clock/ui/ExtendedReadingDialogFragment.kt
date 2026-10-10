@@ -26,10 +26,14 @@ internal class ExtendedReadingDialogFragment : DialogFragment() {
             getString(R.string.extended_reading_link) + "</a>"
         body.text = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
         body.movementMethod = LinkMovementMethod.getInstance()
-        return AlertDialog.Builder(context)
+        val dialog = AlertDialog.Builder(context)
             .setTitle(R.string.extended_reading_title)
             .setView(view)
             .setPositiveButton(R.string.extended_reading_close, null)
             .create()
+        dialog.setOnShowListener {
+            dialog.applyClockDialogTheme()
+        }
+        return dialog
     }
 }

@@ -11,24 +11,20 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.fragment.app.DialogFragment
 import com.akira.clock.R
 import kotlin.math.roundToInt
 
-/**
- * Creates a user-defined tag (name, color, total and warmup durations).
- *
- * The color picker offers the three Apple traffic-light presets as circles and a hex field whose
- * parsed color is rendered into the preview swatch on every keystroke. The selected values are
- * reported back to the hosting [Listener]; validation blocks dismissal when the name is blank or the
- * durations are invalid.
- */
+/** Edits tag identity and daily goals independently of time-block durations. */
 internal class TagEditorDialogFragment : DialogFragment() {
 
     /** Implemented by the fragment that owns tag creation and editing. */
     interface Listener {
-        fun onTagCreated(name: String, colorArgb: Long, totalDurationMs: Long, warmupDurationMs: Long, dailyGoalMs: Long)
-        fun onTagUpdated(id: String, name: String, colorArgb: Long, totalDurationMs: Long, warmupDurationMs: Long, dailyGoalMs: Long)
+        fun onTagCreated(name: String, colorArgb: Long, dailyGoalMs: Long)
+        fun onTagUpdated(id: String, name: String, colorArgb: Long, dailyGoalMs: Long)
         fun onTagDeleted(id: String)
     }
 
@@ -36,8 +32,6 @@ internal class TagEditorDialogFragment : DialogFragment() {
     private var editingTagId: String? = null
     private var nameInput: EditText? = null
     private var hexInput: EditText? = null
-    private var totalInput: EditText? = null
-    private var warmupInput: EditText? = null
     private var dailyGoalInput: EditText? = null
     private var preview: View? = null
     private var swatchesContainer: LinearLayout? = null
@@ -50,8 +44,6 @@ internal class TagEditorDialogFragment : DialogFragment() {
         val view = layoutInflater.inflate(R.layout.dialog_tag_editor, null)
         nameInput = view.findViewById(R.id.tag_name_input)
         hexInput = view.findViewById(R.id.hex_input)
-        totalInput = view.findViewById(R.id.tag_total_input)
-        warmupInput = view.findViewById(R.id.tag_warmup_input)
         dailyGoalInput = view.findViewById(R.id.tag_daily_goal_input)
         preview = view.findViewById(R.id.color_preview)
         swatchesContainer = view.findViewById(R.id.color_swatches_container)
@@ -64,7 +56,13 @@ internal class TagEditorDialogFragment : DialogFragment() {
             }
         }
         hexInput?.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int,
+            ) = Unit
+
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
                 if (suppressHexWatch) return
@@ -84,9 +82,9 @@ internal class TagEditorDialogFragment : DialogFragment() {
             nameInput?.setText(args?.getString(ARG_TAG_NAME))
             val color = args?.getLong(ARG_TAG_COLOR, TagColors.GREEN)
             if (color != null) selectColor(color)
-            totalInput?.setText(((args?.getLong(ARG_TAG_TOTAL_MS, 60 * 60_000L) ?: 60 * 60_000L) / 60_000L).toString())
-            warmupInput?.setText(((args?.getLong(ARG_TAG_WARMUP_MS, 15 * 60_000L) ?: 15 * 60_000L) / 60_000L).toString())
-            dailyGoalInput?.setText(((args?.getLong(ARG_TAG_DAILY_GOAL_MS, 3 * 60 * 60_000L) ?: 3 * 60 * 60_000L) / 60_000L).toString())
+            val defaultGoalMs = 3 * 60 * 60_000L
+            val goalMs = args?.getLong(ARG_TAG_DAILY_GOAL_MS, defaultGoalMs) ?: defaultGoalMs
+            dailyGoalInput?.setText((goalMs / 60_000L).toString())
         } else {
             selectColor(TagColors.GREEN)
             dailyGoalInput?.setText("180")
@@ -98,14 +96,18 @@ internal class TagEditorDialogFragment : DialogFragment() {
             .setPositiveButton(if (isEditing) R.string.tag_save else R.string.tag_create, null)
             .setNegativeButton(android.R.string.cancel, null)
         if (isEditing) {
-            dialogBuilder.setNeutralButton(R.string.tag_delete) { _, _ -> dispatchDelete() }
+            dialogBuilder.setNeutralButton(R.string.tag_delete, null)
         }
         val dialog = dialogBuilder.create()
         dialog.setOnShowListener {
+            dialog.applyClockDialogTheme()
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 if (isEditing) dispatchUpdate() else dispatchCreate()
             }
             if (isEditing) {
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    confirmDelete()
+                }
                 dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(
                     ContextCompat.getColor(context, R.color.clock_danger)
                 )
@@ -118,7 +120,7 @@ internal class TagEditorDialogFragment : DialogFragment() {
         swatchesContainer?.removeAllViews()
         val presets = TagColors.presets
         val density = resources.displayMetrics.density
-        val swatchSize = (44 * density).toInt()
+        val swatchSize = (48 * density).toInt()
         val marginEnd = (12 * density).toInt()
         val newSwatches = mutableListOf<View>()
         presets.forEachIndexed { index, color ->
@@ -129,6 +131,22 @@ internal class TagEditorDialogFragment : DialogFragment() {
                     }
                 }
                 background = swatchDrawable(color, color == selectedColor)
+                isFocusable = true
+                isSelected = color == selectedColor
+                contentDescription = getString(
+                    R.string.tag_color_accessibility, TagColors.formatHex(color),
+                )
+                ViewCompat.setAccessibilityDelegate(this, object : AccessibilityDelegateCompat() {
+                    override fun onInitializeAccessibilityNodeInfo(
+                        host: View,
+                        info: AccessibilityNodeInfoCompat,
+                    ) {
+                        super.onInitializeAccessibilityNodeInfo(host, info)
+                        info.className = "android.widget.RadioButton"
+                        info.isCheckable = true
+                        info.isChecked = host.isSelected
+                    }
+                })
                 setOnClickListener { selectColor(color) }
             }
             swatchesContainer?.addView(swatch)
@@ -163,16 +181,18 @@ internal class TagEditorDialogFragment : DialogFragment() {
             nameInput?.error = getString(R.string.tag_name_required)
             return
         }
-        val total = totalInput?.text?.toString()?.toIntOrNull()
-        val warmup = warmupInput?.text?.toString()?.toIntOrNull()
-        if (total == null || warmup == null || total !in 1..1_440 || warmup !in 0 until total) {
-            totalInput?.error = getString(R.string.timer_invalid_duration)
+        val parsed = TagColors.parseHex(hexInput?.text?.toString().orEmpty())
+        if (parsed == null) {
+            hexInput?.error = getString(R.string.tag_color_invalid)
             return
         }
-        val parsed = TagColors.parseHex(hexInput?.text?.toString().orEmpty())
-        val color = parsed ?: selectedColor
-        val dailyGoal = dailyGoalInput?.text?.toString()?.toIntOrNull() ?: 180
-        (parentFragment as? Listener)?.onTagCreated(name, color, total * 60_000L, warmup * 60_000L, dailyGoal * 60_000L)
+        val color = parsed
+        val dailyGoal = dailyGoalInput?.text?.toString()?.toIntOrNull()
+        if (dailyGoal == null || dailyGoal !in 1..1_440) {
+            dailyGoalInput?.error = getString(R.string.tag_daily_goal_invalid)
+            return
+        }
+        (parentFragment as? Listener)?.onTagCreated(name, color, dailyGoal * 60_000L)
         dismiss()
     }
 
@@ -183,22 +203,29 @@ internal class TagEditorDialogFragment : DialogFragment() {
             nameInput?.error = getString(R.string.tag_name_required)
             return
         }
-        val total = totalInput?.text?.toString()?.toIntOrNull()
-        val warmup = warmupInput?.text?.toString()?.toIntOrNull()
-        if (total == null || warmup == null || total !in 1..1_440 || warmup !in 0 until total) {
-            totalInput?.error = getString(R.string.timer_invalid_duration)
+        val parsed = TagColors.parseHex(hexInput?.text?.toString().orEmpty())
+        if (parsed == null) {
+            hexInput?.error = getString(R.string.tag_color_invalid)
             return
         }
-        val parsed = TagColors.parseHex(hexInput?.text?.toString().orEmpty())
-        val color = parsed ?: selectedColor
-        val dailyGoal = dailyGoalInput?.text?.toString()?.toIntOrNull() ?: 180
-        (parentFragment as? Listener)?.onTagUpdated(id, name, color, total * 60_000L, warmup * 60_000L, dailyGoal * 60_000L)
+        val color = parsed
+        val dailyGoal = dailyGoalInput?.text?.toString()?.toIntOrNull()
+        if (dailyGoal == null || dailyGoal !in 1..1_440) {
+            dailyGoalInput?.error = getString(R.string.tag_daily_goal_invalid)
+            return
+        }
+        (parentFragment as? Listener)?.onTagUpdated(id, name, color, dailyGoal * 60_000L)
         dismiss()
     }
 
-    private fun dispatchDelete() {
+    private fun confirmDelete() {
         val id = editingTagId ?: return
-        (parentFragment as? Listener)?.onTagDeleted(id)
+        if (parentFragmentManager.findFragmentByTag(TagDeleteDialogFragment.DIALOG_TAG) != null) {
+            return
+        }
+        TagDeleteDialogFragment.newInstance(
+            id, requireArguments().getString(ARG_TAG_NAME).orEmpty(),
+        ).show(parentFragmentManager, TagDeleteDialogFragment.DIALOG_TAG)
         dismiss()
     }
 
@@ -236,16 +263,12 @@ internal class TagEditorDialogFragment : DialogFragment() {
         private const val ARG_TAG_ID = "tagId"
         private const val ARG_TAG_NAME = "tagName"
         private const val ARG_TAG_COLOR = "tagColor"
-        private const val ARG_TAG_TOTAL_MS = "tagTotalMs"
-        private const val ARG_TAG_WARMUP_MS = "tagWarmupMs"
         private const val ARG_TAG_DAILY_GOAL_MS = "tagDailyGoalMs"
 
         fun newInstance(
             tagId: String,
             name: String,
             colorArgb: Long,
-            totalDurationMs: Long,
-            warmupDurationMs: Long,
             dailyGoalMs: Long = 3 * 60 * 60_000L,
         ): TagEditorDialogFragment {
             return TagEditorDialogFragment().apply {
@@ -253,8 +276,6 @@ internal class TagEditorDialogFragment : DialogFragment() {
                     putString(ARG_TAG_ID, tagId)
                     putString(ARG_TAG_NAME, name)
                     putLong(ARG_TAG_COLOR, colorArgb)
-                    putLong(ARG_TAG_TOTAL_MS, totalDurationMs)
-                    putLong(ARG_TAG_WARMUP_MS, warmupDurationMs)
                     putLong(ARG_TAG_DAILY_GOAL_MS, dailyGoalMs)
                 }
             }

@@ -12,6 +12,7 @@ internal data class TimerUiState(
     val totalProgress: Float,
     val phaseProgress: Float,
     val paused: Boolean,
+    val stopwatch: Boolean = false,
 ) {
     init {
         require(remainingMs >= 0L)

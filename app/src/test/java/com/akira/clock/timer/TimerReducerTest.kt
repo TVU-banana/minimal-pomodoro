@@ -161,6 +161,30 @@ class TimerReducerTest {
     }
 
     @Test
+    fun stopwatchAccumulatesUntilManuallyAborted() {
+        val clock = FakeClock()
+        var state = reduce(
+            null,
+            TimerCommand.Start("preset-1", 0L, 0L, TimerMode.STOPWATCH),
+            clock,
+        )!!
+
+        assertEquals(TimerStage.Focus, state.stage)
+        assertEquals(null, state.phaseDeadlineElapsedMs)
+        clock.advanceBy(30 * MINUTE_MS)
+        state = reduce(state, TimerCommand.Pause, clock)!!
+        assertEquals(30 * MINUTE_MS, state.accumulatedFocusMs)
+
+        clock.advanceBy(10 * MINUTE_MS)
+        state = reduce(state, TimerCommand.Resume, clock)!!
+        clock.advanceBy(20 * MINUTE_MS)
+        state = reduce(state, TimerCommand.Abort, clock)!!
+
+        assertEquals(TimerStage.Aborted, state.stage)
+        assertEquals(50 * MINUTE_MS, state.accumulatedFocusMs)
+    }
+
+    @Test
     fun startCreatesDistinctSessionIdAndValidatesDuration() {
         val clock = FakeClock()
         val first = reduce(
@@ -177,6 +201,49 @@ class TimerReducerTest {
         assertNotEquals(first.sessionId, second.sessionId)
         assertThrows(IllegalArgumentException::class.java) {
             reduce(null, TimerCommand.Start("preset-1", MINUTE_MS, MINUTE_MS), clock)
+        }
+    }
+
+    @Test
+    fun warmupIsAdditionalAndCompletionCreditsOnlyTheFullFormalFocus() {
+        val clock = FakeClock()
+        var state = reduce(
+            null,
+            TimerCommand.Start.forTimeBlock("preset", 60 * MINUTE_MS, 5 * MINUTE_MS),
+            clock,
+        )!!
+        assertEquals(TimerStage.Warmup, state.stage)
+        clock.advanceBy(5 * MINUTE_MS)
+        state = reduce(state, TimerCommand.PhaseDeadlineReached, clock)!!
+        assertEquals(TimerStage.Focus, state.stage)
+        assertEquals(60 * MINUTE_MS, state.phaseDeadlineElapsedMs!! - clock.elapsedRealtimeMs())
+        clock.advanceBy(10 * MINUTE_MS)
+        state = reduce(state, TimerCommand.Pause, clock)!!
+        clock.advanceBy(20 * MINUTE_MS)
+        state = reduce(state, TimerCommand.Resume, clock)!!
+        assertEquals(50 * MINUTE_MS, state.phaseDeadlineElapsedMs!! - clock.elapsedRealtimeMs())
+        clock.advanceBy(50 * MINUTE_MS)
+        state = reduce(state, TimerCommand.PhaseDeadlineReached, clock)!!
+        assertEquals(TimerStage.Completed, state.stage)
+        assertEquals(60 * MINUTE_MS, state.accumulatedFocusMs)
+        assertEquals(5 * MINUTE_MS, state.accumulatedWarmupMs)
+    }
+
+    @Test
+    fun warmupMayBeLongerThanFormalFocusAndStopwatchHasNoWarmup() {
+        val clock = FakeClock()
+        var state = reduce(
+            null,
+            TimerCommand.Start.forTimeBlock("preset", MINUTE_MS, 5 * MINUTE_MS),
+            clock,
+        )!!
+        clock.advanceBy(5 * MINUTE_MS)
+        state = reduce(state, TimerCommand.PhaseDeadlineReached, clock)!!
+        assertEquals(MINUTE_MS, state.phaseDeadlineElapsedMs!! - clock.elapsedRealtimeMs())
+        val stopwatch = TimerCommand.Start.forTimeBlock("preset", 0, 0, TimerMode.STOPWATCH)
+        assertEquals(0L, stopwatch.totalDurationMs)
+        assertThrows(IllegalArgumentException::class.java) {
+            TimerCommand.Start.forTimeBlock("preset", 0, MINUTE_MS, TimerMode.STOPWATCH)
         }
     }
 

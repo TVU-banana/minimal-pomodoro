@@ -11,7 +11,17 @@ import java.time.format.DateTimeFormatter
 
 internal fun formatDuration(context: Context, durationMs: Long): String {
     val totalMinutes = durationMs / 60_000L
-    return "${totalMinutes}min"
+    return if (totalMinutes < 60) {
+        context.getString(R.string.duration_short_minutes, totalMinutes)
+    } else if (totalMinutes % 60 == 0L) {
+        context.getString(R.string.duration_short_hours, totalMinutes / 60)
+    } else {
+        context.getString(
+            R.string.duration_short_hours_minutes,
+            totalMinutes / 60,
+            totalMinutes % 60,
+        )
+    }
 }
 
 internal fun statusLabel(context: Context, status: String): String =

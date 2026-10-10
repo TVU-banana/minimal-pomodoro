@@ -34,11 +34,13 @@ internal class TimerNotificationManager(private val context: Context) {
         if (!notificationsAllowed()) return
         createChannel()
         val builder = Notification.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_clock)
+            .setSmallIcon(R.drawable.ic_notification_timer)
             .setContentTitle(stageTitle(snapshot.stage))
             .setContentText(contentText(snapshot))
             .setContentIntent(openAppPendingIntent())
-            .setAutoCancel(snapshot.stage == TimerStage.Completed || snapshot.stage == TimerStage.Aborted)
+            .setAutoCancel(
+                snapshot.stage == TimerStage.Completed || snapshot.stage == TimerStage.Aborted
+            )
             .setOnlyAlertOnce(!alert)
             .setCategory(Notification.CATEGORY_ALARM)
 

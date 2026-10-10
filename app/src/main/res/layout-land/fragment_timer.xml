@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Full-screen countdown canvas. Visible only while the timer is active. -->
+    <FrameLayout
+        android:id="@+id/timer_renderer_host"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/clock_background" />
+
+    <!-- The toolbar stays in place while time blocks scroll below it. -->
+    <FrameLayout
+        android:id="@+id/timer_setup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/clock_background">
+
+        <ScrollView
+            android:id="@+id/timer_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:paddingTop="68dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp">
+                <TextView
+                    android:id="@+id/timer_blocks_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="24dp"
+                    android:text="@string/timer_blocks_empty"
+                    android:textColor="@color/clock_on_surface_muted"
+                    android:textSize="15sp"
+                    android:visibility="gone" />
+                <LinearLayout
+                    android:id="@+id/tag_rows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+                <TextView
+                    android:id="@+id/timer_error"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:accessibilityLiveRegion="polite"
+                    android:textColor="@color/clock_danger"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
+
+        <include
+            layout="@layout/timer_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_gravity="top" />
+    </FrameLayout>
+
+
+    <!-- Minimal control bar docked at the bottom while the timer is active. -->
+    <LinearLayout
+        android:id="@+id/timer_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="20dp"
+        android:paddingEnd="48dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/timer_pause_resume"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_timer_control"
+            android:src="@drawable/ic_play_primary"
+            app:tint="@color/clock_primary"
+            android:scaleType="center"
+            android:layout_marginEnd="32dp"
+            android:contentDescription="@string/timer_pause"
+            tools:ignore="ButtonStyle" />
+
+        <ImageButton
+            android:id="@+id/timer_abort"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_timer_control"
+            android:src="@drawable/ic_stop_primary"
+            app:tint="@color/clock_on_surface_muted"
+            android:scaleType="center"
+            android:contentDescription="@string/timer_abort"
+            tools:ignore="ButtonStyle" />
+    </LinearLayout>
+
+</FrameLayout>

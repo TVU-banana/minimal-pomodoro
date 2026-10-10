@@ -1,6 +1,7 @@
 package com.akira.clock.alarm
 
 import androidx.room.withTransaction
+import com.akira.clock.band.BandPreset
 import com.akira.clock.data.CategoryEntity
 import com.akira.clock.data.ClockDatabase
 import com.akira.clock.data.SessionEntity
@@ -10,6 +11,7 @@ import com.akira.clock.data.TaskPresetEntity
 import com.akira.clock.data.TimerCheckpointEntity
 import com.akira.clock.timer.ClockSource
 import com.akira.clock.timer.IdentifierSource
+import com.akira.clock.timer.TimerMode
 import com.akira.clock.timer.TimerSnapshot
 import com.akira.clock.timer.TimerStage
 import java.time.ZoneId
@@ -33,6 +35,22 @@ internal class TimerTransitionStore(
     private val bootCount: () -> Int,
     private val identifiers: IdentifierSource,
 ) {
+    /** Lists only resolvable countdown presets, with a bounded development page size. */
+    suspend fun bandPresets(offset: Int): Pair<List<BandPreset>, Int?> {
+        val presets = database.taskPresetDao().bandPage(offset)
+        val page = presets.take(4).map {
+            BandPreset(it.id, it.name.take(80), it.totalDurationMs)
+        }
+        val next = if (presets.size > 4 && offset <= Int.MAX_VALUE - 4) offset + 4 else null
+        return page to next
+    }
+
+    suspend fun isBandPreset(id: String): Boolean {
+        val preset = database.taskPresetDao().get(id) ?: return false
+        val category = database.categoryDao().get(preset.categoryId) ?: return false
+        return preset.timerMode == TimerMode.COUNTDOWN.name && category.archivedAtUtcMs == null
+    }
+
     suspend fun checkpoint(): TimerCheckpointEntity? = database.timerCheckpointDao().get()
 
     suspend fun loadStartContext(presetId: String): TimerStartContext {
@@ -106,14 +124,14 @@ internal class TimerTransitionStore(
     ) {
         database.withTransaction {
             if (next.stage.isTerminal && shouldDiscard(session)) {
-                // Sessions shorter than one warmup duration are not meaningful records: remove the
-                // session and its segments so they never surface in reports/history, and clear the
-                // checkpoint so restore returns to idle.
+                // A warmup-only attempt has no formal focus to report. This only discards the
+                // currently ending attempt; existing terminal history is never rewritten.
                 database.sessionSegmentDao().deleteForSession(session.id)
                 database.sessionDao().delete(session.id)
                 database.timerCheckpointDao().delete()
             } else {
-                // Insert the session first because activity segments reference it through a foreign key.
+                // Insert the session first because activity segments reference it through
+                // a foreign key.
                 database.sessionDao().upsert(session)
                 updateSegments(previous, next)
                 if (next.stage.isTerminal) {
@@ -132,9 +150,9 @@ internal class TimerTransitionStore(
         }
     }
 
-    /** A session counts as a record only once it ran for at least one full warmup duration. */
+    /** Only attempts with positive formal focus become terminal records. */
     private fun shouldDiscard(session: SessionEntity): Boolean =
-        session.actualWarmupMs + session.actualFocusMs < session.plannedWarmupMs
+        session.actualFocusMs <= 0L
 
     fun updateSession(
         previous: TimerSnapshot,
@@ -157,7 +175,11 @@ internal class TimerTransitionStore(
                 else -> SessionStatus.RUNNING.name
             },
             // The reason is only meaningful for an abort; preserve any prior value otherwise.
-            abortReason = if (next.stage == TimerStage.Aborted) abortReason else existing.abortReason,
+            abortReason = if (next.stage == TimerStage.Aborted) {
+                abortReason
+            } else {
+                existing.abortReason
+            },
             updatedAtUtcMs = next.updatedAtUtcMs,
         )
 
@@ -244,6 +266,11 @@ private fun TimerCheckpointEntity.toSnapshot(): TimerSnapshot = TimerSnapshot(
     stage = stage.toTimerStage(),
     totalDurationMs = totalDurationMs,
     warmupDurationMs = warmupDurationMs,
+    mode = if (totalDurationMs == 0L && warmupDurationMs == 0L) {
+        TimerMode.STOPWATCH
+    } else {
+        TimerMode.COUNTDOWN
+    },
     accumulatedWarmupMs = accumulatedWarmupMs,
     accumulatedFocusMs = accumulatedFocusMs,
     phaseStartedElapsedMs = phaseStartedElapsedMs,
@@ -253,6 +280,14 @@ private fun TimerCheckpointEntity.toSnapshot(): TimerSnapshot = TimerSnapshot(
 )
 
 private fun TimerSnapshot.rebaseElapsedClock(clock: ClockSource): TimerSnapshot {
+    if (mode == TimerMode.STOPWATCH) {
+        val elapsedSincePersistMs = (clock.utcNowMs() - updatedAtUtcMs).coerceAtLeast(0L)
+        return copy(
+            phaseStartedElapsedMs = clock.elapsedRealtimeMs(),
+            accumulatedFocusMs = accumulatedFocusMs + elapsedSincePersistMs,
+            updatedAtUtcMs = clock.utcNowMs(),
+        )
+    }
     val deadlineUtc = requireNotNull(phaseDeadlineUtcMs)
     val phaseDurationRemainingAtStart = when (stage) {
         TimerStage.Warmup -> warmupDurationMs - accumulatedWarmupMs

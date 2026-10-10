@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="band_connect">连接手环（实验功能）</string>
+    <string name="band_listener_ready">手环监听已注册，请在手环上刷新状态</string>
+    <string name="band_connect_failed">连接失败，请检查运动健康配对、授权与签名</string>
+</resources>

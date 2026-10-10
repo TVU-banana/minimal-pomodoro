@@ -2,7 +2,7 @@ package com.akira.clock.ui.render
 
 import java.time.LocalDate
 
-/** Calendar-week positioning rules shared by the GitHub-style heatmap renderer and its tests. */
+/** Calendar-week positioning rules shared by the Codex-style heatmap renderer and its tests. */
 internal object HeatmapGrid {
     private const val DAYS_PER_WEEK = 7
 
@@ -17,7 +17,14 @@ internal object HeatmapGrid {
         return GridPosition(cellIndex / DAYS_PER_WEEK, cellIndex % DAYS_PER_WEEK)
     }
 
-    private fun leadingEmptyCells(rangeStart: LocalDate): Int = rangeStart.dayOfWeek.value % DAYS_PER_WEEK
+    /** Keeps the range's first month identifiable even when the range starts after day one. */
+    fun showsMonthLabel(rangeStart: LocalDate, dayIndex: Int): Boolean {
+        require(dayIndex >= 0) { "dayIndex must not be negative." }
+        return dayIndex == 0 || rangeStart.plusDays(dayIndex.toLong()).dayOfMonth == 1
+    }
+
+    private fun leadingEmptyCells(rangeStart: LocalDate): Int =
+        rangeStart.dayOfWeek.value % DAYS_PER_WEEK
 }
 
 /** A zero-based Sunday-first grid coordinate. */

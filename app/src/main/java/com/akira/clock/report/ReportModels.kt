@@ -11,7 +11,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.TemporalAdjusters
 
-internal enum class ReportPeriod { ALL_TIME, YEAR, MONTH, WEEK, DAY }
+internal enum class ReportPeriod { YEAR, WEEK, DAY }
 
 internal data class TimeRange(val fromUtcMs: Long, val toUtcMs: Long)
 
@@ -35,20 +35,23 @@ internal data class ReportRow(
 /**
  * Resolves a [ReportPeriod] to a UTC half-open range anchored at [anchor] in [zoneId].
  *
- * WEEK starts on Monday (ISO 8601). ALL_TIME spans every recorded session so the report can show
- * cumulative totals since first use.
+ * WEEK starts on Monday (ISO 8601).
  */
 internal fun reportRange(period: ReportPeriod, anchor: LocalDate, zoneId: ZoneId): TimeRange =
     when (period) {
-        ReportPeriod.ALL_TIME -> TimeRange(0L, Long.MAX_VALUE)
         ReportPeriod.YEAR -> rangeOf(anchor.withDayOfYear(1), zoneId) { plusYears(1) }
-        ReportPeriod.MONTH -> rangeOf(anchor.withDayOfMonth(1), zoneId) { plusMonths(1) }
-        ReportPeriod.WEEK ->
-            rangeOf(anchor.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)), zoneId) { plusWeeks(1) }
+        ReportPeriod.WEEK -> {
+            val weekStart = anchor.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            rangeOf(weekStart, zoneId) { plusWeeks(1) }
+        }
         ReportPeriod.DAY -> rangeOf(anchor, zoneId) { plusDays(1) }
     }
 
-private fun rangeOf(start: LocalDate, zoneId: ZoneId, endStep: LocalDate.() -> LocalDate): TimeRange =
+private fun rangeOf(
+    start: LocalDate,
+    zoneId: ZoneId,
+    endStep: LocalDate.() -> LocalDate,
+): TimeRange =
     TimeRange(
         fromUtcMs = start.atStartOfDay(zoneId).toInstant().toEpochMilli(),
         toUtcMs = start.endStep().atStartOfDay(zoneId).toInstant().toEpochMilli(),
@@ -72,7 +75,9 @@ internal fun aggregateReport(
 
     sessions.asSequence()
         .filter { it.startedAtUtcMs in range.fromUtcMs until range.toUtcMs }
-        .filter { it.status == SessionStatus.COMPLETED.name || it.status == SessionStatus.ABORTED.name }
+        .filter {
+            it.status == SessionStatus.COMPLETED.name || it.status == SessionStatus.ABORTED.name
+        }
         .forEach { session ->
             val row = rows.getOrPut(session.categoryId) { MutableRow(session.categoryNameSnapshot) }
             if (session.status == SessionStatus.COMPLETED.name) row.completed++ else row.aborted++
@@ -84,12 +89,18 @@ internal fun aggregateReport(
             session.status != SessionStatus.ABORTED.name
         ) return@forEach
         val end = segment.endedAtUtcMs ?: range.toUtcMs
+        // Clip each segment to the window [fromUtcMs, toUtcMs) so segments crossing
+        // boundaries are attributed accurately without double-counting.
         val overlapStart = maxOf(segment.startedAtUtcMs, range.fromUtcMs)
         val overlapEnd = minOf(end, range.toUtcMs)
         val duration = (overlapEnd - overlapStart).coerceAtLeast(0L)
         if (duration == 0L) return@forEach
         val row = rows.getOrPut(session.categoryId) { MutableRow(session.categoryNameSnapshot) }
-        if (segment.phase == SessionPhase.WARMUP.name) row.warmupMs += duration else row.focusMs += duration
+        if (segment.phase == SessionPhase.WARMUP.name) {
+            row.warmupMs += duration
+        } else {
+            row.focusMs += duration
+        }
     }
 
     return rows.map { (categoryId, row) ->

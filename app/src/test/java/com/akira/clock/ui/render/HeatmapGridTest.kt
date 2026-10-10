@@ -2,6 +2,8 @@ package com.akira.clock.ui.render
 
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HeatmapGridTest {
@@ -21,5 +23,13 @@ class HeatmapGridTest {
         assertEquals(GridPosition(column = 0, row = 4), firstDay)
         assertEquals(GridPosition(column = 1, row = 0), fourthDay)
         assertEquals(2, HeatmapGrid.columnCount(start, 4))
+    }
+
+    @Test
+    fun labelsTheStartMonthWhenAllTimeDataBeginsMidMonth() {
+        val start = LocalDate.of(2026, 8, 5)
+
+        assertTrue(HeatmapGrid.showsMonthLabel(start, 0))
+        assertFalse(HeatmapGrid.showsMonthLabel(start, 1))
     }
 }

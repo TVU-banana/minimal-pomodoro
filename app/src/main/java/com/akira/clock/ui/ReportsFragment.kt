@@ -1,15 +1,24 @@
 package com.akira.clock.ui
 
+import android.Manifest
+import android.content.ContentValues
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageButton
 import android.widget.RadioGroup
 import android.widget.TextView
-import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -18,115 +27,220 @@ import androidx.recyclerview.widget.RecyclerView
 import com.akira.clock.ClockApplication
 import com.akira.clock.R
 import com.akira.clock.data.SessionEntity
+import com.akira.clock.export.FocusPosterRenderer
 import com.akira.clock.report.DEFAULT_TAG_COLOR
-import com.akira.clock.report.ReportData
-import com.akira.clock.report.ReportPeriod
-import com.akira.clock.report.ReportRow
-import com.akira.clock.report.ReportService
 import com.akira.clock.report.FocusPosterData
 import com.akira.clock.report.FocusPosterDataFactory
-import com.akira.clock.export.FocusPosterRenderer
-import com.akira.clock.ui.render.BarChartView
+import com.akira.clock.report.FocusPosterDraft
+import com.akira.clock.report.HeatmapPage
+import com.akira.clock.report.ReportData
+import com.akira.clock.report.ReportNavigation
+import com.akira.clock.report.ReportPeriod
+import com.akira.clock.report.ReportRow
+import com.akira.clock.report.ReportSelection
+import com.akira.clock.report.ReportService
 import com.akira.clock.ui.render.HeatmapView
-import java.time.DayOfWeek
+import com.akira.clock.ui.render.LineChartView
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ReportsFragment : Fragment(R.layout.fragment_reports) {
+/**
+ * Renders period-based focus reports (Day, Week, Year) with heatmaps, charts, and session history.
+ *
+ * Data aggregation runs asynchronously on Dispatchers.IO via ReportService. Active loading
+ * jobs are canceled when hidden or navigated away, and refreshed upon return to RESUMED.
+ */
+internal class ReportsFragment : Fragment(R.layout.fragment_reports),
+    PosterCustomizeDialogFragment.Listener {
     private var pendingPoster: FocusPosterData? = null
+    private var pendingDraft: FocusPosterDraft? = null
+    private var galleryPoster: FocusPosterDraft? = null
+    private var reflectionDate: LocalDate? = null
+    private var reportSelection: ReportSelection? = null
+    private var heatmapPageIndex = 0
+    private var loadJob: Job? = null
+    private var refreshVisibleReport: (() -> Unit)? = null
+    private val galleryPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        val poster = galleryPoster
+        galleryPoster = null
+        if (granted && poster != null) {
+            savePosterToGallery(poster)
+        } else if (!granted) {
+            Toast.makeText(
+                requireContext(),
+                R.string.poster_gallery_permission_required,
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
     private val createPoster = registerForActivityResult(
         ActivityResultContracts.CreateDocument("image/png"),
     ) { uri ->
-        val poster = pendingPoster ?: return@registerForActivityResult
+        val poster = pendingDraft ?: return@registerForActivityResult
         uri?.let { destination ->
-            viewLifecycleOwner.lifecycleScope.launch {
-                runCatching {
-                    val bitmap = withContext(Dispatchers.Default) {
-                        FocusPosterRenderer(requireContext().applicationContext).render(poster)
-                    }
-                    withContext(Dispatchers.IO) {
-                        requireNotNull(requireContext().contentResolver.openOutputStream(destination, "w"))
-                            .use { stream ->
-                                check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream))
-                            }
-                    }
-                    bitmap.recycle()
-                }.onSuccess {
-                    Toast.makeText(requireContext(), R.string.poster_export_success, Toast.LENGTH_SHORT).show()
-                }.onFailure {
-                    Toast.makeText(
-                        requireContext(),
-                        getString(R.string.data_operation_failed, it.message ?: it.javaClass.simpleName),
-                        Toast.LENGTH_LONG,
-                    ).show()
+            val resolver = requireContext().contentResolver
+            savePoster(poster) { bitmap ->
+                requireNotNull(resolver.openOutputStream(destination, "w")).use { stream ->
+                    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream))
                 }
             }
         }
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        // Large type must not leave the chart with a tiny scroll target below fixed controls.
+        val layout = if (resources.configuration.fontScale >= LARGE_TEXT_SCALE) {
+            R.layout.fragment_reports_large_text
+        } else {
+            R.layout.fragment_reports
+        }
+        return inflater.inflate(layout, container, false)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val list = view.findViewById<RecyclerView>(R.id.report_list)
-        val empty = view.findViewById<TextView>(R.id.report_empty)
-        val summary = view.findViewById<TextView>(R.id.report_summary)
-        val exportPoster = view.findViewById<Button>(R.id.report_export_poster)
-        val periods = view.findViewById<RadioGroup>(R.id.report_period)
-        val adapter = ReportAdapter()
-
         list.layoutManager = LinearLayoutManager(requireContext())
+        val controls = if (view.findViewById<RadioGroup>(R.id.report_period) == null) {
+            layoutInflater.inflate(R.layout.report_controls, list, false)
+        } else {
+            view
+        }
+        val empty = controls.findViewById<TextView>(R.id.report_empty)
+        val summary = controls.findViewById<TextView>(R.id.report_summary)
+        val exportPoster = controls.findViewById<Button>(R.id.report_export_poster)
+        val periods = controls.findViewById<RadioGroup>(R.id.report_period)
+        val rangePrevious = controls.findViewById<ImageButton>(R.id.report_range_previous)
+        val rangeTitle = controls.findViewById<TextView>(R.id.report_range_title)
+        val rangeNext = controls.findViewById<ImageButton>(R.id.report_range_next)
+        lateinit var refreshReport: () -> Unit
+        val adapter = ReportAdapter(
+            controlsHeader = controls.takeIf { it !== view },
+            onPreviousHeatmapPage = {
+                if (heatmapPageIndex > 0) {
+                    heatmapPageIndex--
+                    refreshReport()
+                }
+            },
+            onNextHeatmapPage = {
+                val selection = reportSelection
+                if (selection != null) {
+                    val page = ReportNavigation.heatmapPage(selection, heatmapPageIndex)
+                    if (ReportNavigation.nextHeatmapPageOrNull(page, LocalDate.now()) != null) {
+                        heatmapPageIndex++
+                        refreshReport()
+                    }
+                }
+            },
+        )
+
+        if (controls !== view) list.itemAnimator = null
         list.adapter = adapter
         val app = requireActivity().application as ClockApplication
         val service = ReportService(app.database)
         val dao = app.database.sessionDao()
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
+        val restoredPeriod = savedInstanceState?.getString(STATE_REPORT_PERIOD)
+            ?.let { ReportPeriod.entries.firstOrNull { period -> period.name == it } }
+            ?: reportSelection?.period ?: ReportPeriod.DAY
+        val restoredAnchor = savedInstanceState?.getString(STATE_REPORT_ANCHOR)
+            ?.runCatching(LocalDate::parse)
+            ?.getOrNull()
+            ?: reportSelection?.anchor ?: today
+        reportSelection = ReportNavigation.normalize(
+            ReportSelection(restoredPeriod, restoredAnchor),
+            today,
+        )
+        heatmapPageIndex = savedInstanceState?.getInt(STATE_HEATMAP_PAGE_INDEX)
+            ?.takeIf { it in 0..3 }
+            ?: if (savedInstanceState == null) heatmapPageIndex else {
+                ReportNavigation.pageIndexFor(reportSelection!!.anchor)
+            }
 
-        fun load(period: ReportPeriod) {
-            viewLifecycleOwner.lifecycleScope.launch {
+        fun renderNavigation(selection: ReportSelection) {
+            val currentDate = LocalDate.now()
+            rangeTitle.text = formatRangeTitle(selection, currentDate)
+            rangeNext.isEnabled = ReportNavigation.nextOrNull(selection, currentDate) != null
+            rangeNext.alpha = if (rangeNext.isEnabled) 1f else DISABLED_ARROW_ALPHA
+        }
+
+        fun load(selection: ReportSelection) {
+            loadJob?.cancel()
+            val currentDate = LocalDate.now()
+            val snapshot = selection
+            val pageIndex = heatmapPageIndex
+            reflectionDate = snapshot.anchor
+            renderNavigation(snapshot)
+            exportPoster.isEnabled = false
+            loadJob = viewLifecycleOwner.lifecycleScope.launch {
                 val data = withContext(Dispatchers.IO) {
-                    service.load(period, today, zone)
+                    service.load(snapshot.period, snapshot.anchor, zone)
                 }
+                if (reportSelection != snapshot || pageIndex != heatmapPageIndex) return@launch
                 val hasContent = data.rows.isNotEmpty() || data.sessions.isNotEmpty()
                 empty.isVisible = !hasContent
                 summary.isVisible = hasContent
-                exportPoster.isVisible = hasContent
+                exportPoster.isVisible = true
+                exportPoster.isEnabled = true
                 if (hasContent) {
                     summary.text = getString(
                         R.string.report_summary,
-                        formatDuration(requireContext(), data.rows.sumOf { it.investedMs }),
+                        formatDuration(requireContext(), data.rows.sumOf { it.focusMs }),
                     )
                 }
 
                 pendingPoster = withContext(Dispatchers.IO) {
-                    FocusPosterDataFactory.create(period, dao.allForExport(), today, zone)
+                    FocusPosterDataFactory.create(
+                        snapshot.period, dao.allForExport(), snapshot.anchor, zone,
+                        app.database.sessionSegmentDao().allForExport(),
+                    )
                 }
 
                 val items = mutableListOf<ReportItem>()
 
                 // Chart header
-                when (period) {
+                when (snapshot.period) {
                     ReportPeriod.DAY -> {
-                        val barData = withContext(Dispatchers.IO) { buildDayBarData(dao, today, zone) }
-                        items += ReportItem.BarChart(getString(R.string.report_barchart_title), barData)
+                        val lineData = withContext(Dispatchers.IO) {
+                            requireNotNull(pendingPoster).values.mapIndexed { hour, value ->
+                                LineChartView.TimePoint(hour.toString(), value)
+                            }
+                        }
+                        items += ReportItem.LineChart(
+                            getString(R.string.report_distribution_title), lineData,
+                        )
                     }
                     ReportPeriod.WEEK -> {
-                        val barData = withContext(Dispatchers.IO) { buildWeekBarData(dao, today, zone) }
-                        items += ReportItem.BarChart(getString(R.string.report_barchart_title), barData)
-                    }
-                    ReportPeriod.MONTH -> {
-                        val heatData = withContext(Dispatchers.IO) { buildMonthHeatmap(dao, today, zone) }
-                        items += ReportItem.Heatmap(getString(R.string.report_heatmap_title), heatData)
+                        val lineData = withContext(Dispatchers.IO) {
+                            requireNotNull(pendingPoster).values.mapIndexed { day, value ->
+                                LineChartView.TimePoint(
+                                    getString(R.string.chart_weekday_labels).split(",")[day], value,
+                                )
+                            }
+                        }
+                        items += ReportItem.LineChart(
+                            getString(R.string.report_distribution_title), lineData,
+                        )
                     }
                     ReportPeriod.YEAR -> {
-                        val heatData = withContext(Dispatchers.IO) { buildYearHeatmap(dao, today, zone) }
-                        items += ReportItem.Heatmap(getString(R.string.report_heatmap_title), heatData)
-                    }
-                    ReportPeriod.ALL_TIME -> {
-                        val heatData = withContext(Dispatchers.IO) { buildAllTimeHeatmap(dao, today, zone) }
-                        items += ReportItem.Heatmap(getString(R.string.report_heatmap_title), heatData)
+                        val page = ReportNavigation.heatmapPage(snapshot, pageIndex)
+                        val heatData = withContext(Dispatchers.IO) {
+                            buildHeatmapPage(dao, page, currentDate, zone)
+                        }
+                        items += ReportItem.Heatmap(
+                            getString(R.string.report_heatmap_title),
+                            heatData,
+                        )
                     }
                 }
 
@@ -136,110 +250,274 @@ class ReportsFragment : Fragment(R.layout.fragment_reports) {
             }
         }
 
+        refreshReport = {
+            val selection = reportSelection
+                ?: ReportNavigation.currentSelection(ReportPeriod.DAY, LocalDate.now())
+            load(selection)
+        }
+
         exportPoster.setOnClickListener {
             val poster = pendingPoster ?: return@setOnClickListener
-            createPoster.launch("clock-${poster.rangeStart}-${periodFileLabel(poster.period)}.png")
+            showPosterCustomize(poster)
         }
 
+        periods.check(
+            when (reportSelection!!.period) {
+                ReportPeriod.YEAR -> R.id.report_year
+                ReportPeriod.WEEK -> R.id.report_week
+                ReportPeriod.DAY -> R.id.report_day
+            },
+        )
         periods.setOnCheckedChangeListener { _, checked ->
-            load(
-                when (checked) {
-                    R.id.report_all -> ReportPeriod.ALL_TIME
-                    R.id.report_year -> ReportPeriod.YEAR
-                    R.id.report_week -> ReportPeriod.WEEK
-                    R.id.report_day -> ReportPeriod.DAY
-                    else -> ReportPeriod.MONTH
-                },
-            )
+            val period = when (checked) {
+                R.id.report_year -> ReportPeriod.YEAR
+                R.id.report_week -> ReportPeriod.WEEK
+                else -> ReportPeriod.DAY
+            }
+            reportSelection = ReportNavigation.currentSelection(period, LocalDate.now())
+            heatmapPageIndex = ReportNavigation.pageIndexFor(reportSelection!!.anchor)
+            refreshReport()
         }
 
-        load(ReportPeriod.MONTH)
+        rangePrevious.setOnClickListener {
+            reportSelection = ReportNavigation.previous(requireNotNull(reportSelection))
+            refreshReport()
+        }
+        rangeNext.setOnClickListener {
+            reportSelection = ReportNavigation.nextOrNull(
+                requireNotNull(reportSelection),
+                LocalDate.now(),
+            ) ?: return@setOnClickListener
+            refreshReport()
+        }
+        refreshVisibleReport = refreshReport
     }
+
+    override fun onResume() {
+        super.onResume()
+        refreshVisibleReport?.invoke()
+    }
+
+    override fun onPause() {
+        loadJob?.cancel()
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        refreshVisibleReport = null
+        loadJob = null
+        super.onDestroyView()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        reportSelection?.let { selection ->
+            outState.putString(STATE_REPORT_PERIOD, selection.period.name)
+            outState.putString(STATE_REPORT_ANCHOR, selection.anchor.toString())
+        }
+        outState.putInt(STATE_HEATMAP_PAGE_INDEX, heatmapPageIndex)
+    }
+
+    override fun onPosterDraftReady(draft: FocusPosterDraft, saveAs: Boolean) {
+        val app = requireActivity().application as ClockApplication
+        val date = reflectionDate ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    app.repository.saveDailyReflection(
+                        date, draft.reflectionText, System.currentTimeMillis(),
+                    )
+                }
+            }.onSuccess {
+                app.settings.posterSections = draft.sections
+                pendingDraft = draft
+                if (saveAs) createPoster.launch(posterFileName(draft))
+                else savePosterAfterPermissionCheck(draft)
+            }.onFailure(::showOperationError)
+        }
+    }
+
+    private fun showPosterCustomize(poster: FocusPosterData) {
+        val app = requireActivity().application as ClockApplication
+        val date = reflectionDate ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) { app.repository.dailyReflection(date) }
+            }.onSuccess { reflection ->
+                if (childFragmentManager.findFragmentByTag(POSTER_CUSTOMIZE_DIALOG_TAG) == null) {
+                    PosterCustomizeDialogFragment.newInstance(
+                        poster, app.settings.posterSections, reflection,
+                    ).show(childFragmentManager, POSTER_CUSTOMIZE_DIALOG_TAG)
+                }
+            }.onFailure(::showOperationError)
+        }
+    }
+
+    private fun savePosterToGallery(poster: FocusPosterDraft) {
+        val resolver = requireContext().contentResolver
+        savePoster(poster) { bitmap ->
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, posterFileName(poster))
+                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        "${Environment.DIRECTORY_PICTURES}/Clock",
+                    )
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
+            }
+            val destination = requireNotNull(
+                resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values),
+            )
+            try {
+                requireNotNull(resolver.openOutputStream(destination, "w")).use { stream ->
+                    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream))
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.clear()
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    resolver.update(destination, values, null, null)
+                }
+            } catch (error: Throwable) {
+                resolver.delete(destination, null, null)
+                throw error
+            }
+        }
+    }
+
+    private fun savePosterAfterPermissionCheck(poster: FocusPosterDraft) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            savePosterToGallery(poster)
+        } else {
+            galleryPoster = poster
+            galleryPermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
+
+    private fun savePoster(poster: FocusPosterDraft, write: suspend (Bitmap) -> Unit) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                val bitmap = withContext(Dispatchers.Default) {
+                    FocusPosterRenderer(requireContext().applicationContext).render(poster)
+                }
+                try {
+                    withContext(Dispatchers.IO) { write(bitmap) }
+                } finally {
+                    bitmap.recycle()
+                }
+            }.onSuccess {
+                Toast.makeText(
+                    requireContext(), R.string.poster_export_success, Toast.LENGTH_SHORT,
+                ).show()
+            }.onFailure { error -> showOperationError(error) }
+        }
+    }
+
+    private fun showOperationError(error: Throwable) {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.data_operation_failed, error.message ?: error.javaClass.simpleName),
+            Toast.LENGTH_LONG,
+        ).show()
+    }
+
+    private fun posterFileName(poster: FocusPosterDraft): String =
+        "clock-${poster.data.rangeStart}-${periodFileLabel(poster.data.period)}.png"
 
     private fun periodFileLabel(period: ReportPeriod): String = when (period) {
         ReportPeriod.DAY -> "day"
         ReportPeriod.WEEK -> "week"
-        ReportPeriod.MONTH -> "month"
         ReportPeriod.YEAR -> "year"
-        ReportPeriod.ALL_TIME -> "all-time"
     }
 
-    private suspend fun buildDayBarData(
+    private companion object {
+        const val LARGE_TEXT_SCALE = 1.5f
+        const val POSTER_CUSTOMIZE_DIALOG_TAG = "posterCustomize"
+        const val STATE_REPORT_PERIOD = "reportPeriod"
+        const val STATE_REPORT_ANCHOR = "reportAnchor"
+        const val STATE_HEATMAP_PAGE_INDEX = "heatmapPageIndex"
+        const val DISABLED_ARROW_ALPHA = 0.28f
+    }
+
+    private suspend fun buildHeatmapPage(
         dao: com.akira.clock.data.SessionDao,
+        page: HeatmapPage,
         today: LocalDate,
         zone: ZoneId,
-    ): List<BarChartView.TimeBarItem> {
-        val dayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
-        val dayEnd = dayStart + 24 * 60 * 60_000L
-        val rows = dao.focusByHour(dayStart, dayEnd)
-        val hourMap = rows.associate { it.hourIndex to it.totalMs }
-        return (0..23).map { hour ->
-            BarChartView.TimeBarItem(label = "${hour}", valueMs = hourMap[hour] ?: 0L)
+    ): HeatmapData {
+        val startMs = page.start.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endMs = page.endExclusive.atStartOfDay(zone).toInstant().toEpochMilli()
+        val days = (page.endExclusive.toEpochDay() - page.start.toEpochDay()).toInt()
+        val rows = dao.focusByDayIndex(startMs, endMs)
+        val data = rows.associate { it.dayIndex to (it.totalMs / 60_000).toInt() }
+        return HeatmapData(
+            activityData = data,
+            rangeStart = page.start,
+            days = days,
+            visibleThrough = minOf(today, page.endExclusive.minusDays(1)),
+            pageTitle = getString(
+                R.string.heatmap_page_title,
+                page.year,
+                page.start.monthValue,
+                page.endExclusive.minusDays(1).monthValue,
+            ),
+            previousEnabled = ReportNavigation.previousHeatmapPageOrNull(page) != null,
+            nextEnabled = ReportNavigation.nextHeatmapPageOrNull(page, today) != null,
+        )
+    }
+
+    private fun formatRangeTitle(
+        selection: ReportSelection,
+        today: LocalDate,
+    ): String = when (selection.period) {
+        ReportPeriod.YEAR -> getString(R.string.report_range_year, selection.anchor.year)
+        ReportPeriod.WEEK -> {
+            val start = ReportNavigation.weekStart(selection.anchor)
+            val end = start.plusDays(6)
+            if (start.year == end.year) {
+                getString(
+                    R.string.report_range_week_same_year,
+                    start.monthValue,
+                    start.dayOfMonth,
+                    end.monthValue,
+                    end.dayOfMonth,
+                )
+            } else {
+                getString(
+                    R.string.report_range_week_cross_year,
+                    start.year,
+                    start.monthValue,
+                    start.dayOfMonth,
+                    end.year,
+                    end.monthValue,
+                    end.dayOfMonth,
+                )
+            }
         }
-    }
-
-    private suspend fun buildWeekBarData(
-        dao: com.akira.clock.data.SessionDao,
-        today: LocalDate,
-        zone: ZoneId,
-    ): List<BarChartView.TimeBarItem> {
-        val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        val weekStartMs = weekStart.atStartOfDay(zone).toInstant().toEpochMilli()
-        val weekEndMs = weekStart.plusWeeks(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        val rows = dao.focusByDayIndex(weekStartMs, weekEndMs)
-        val dayMap = rows.associate { it.dayIndex to it.totalMs }
-        val dayNames = arrayOf("一", "二", "三", "四", "五", "六", "日")
-        return dayNames.mapIndexed { index, name ->
-            BarChartView.TimeBarItem(label = name, valueMs = dayMap[index] ?: 0L)
+        ReportPeriod.DAY -> when {
+            selection.anchor == today -> getString(
+                R.string.report_range_today,
+                today.monthValue,
+                today.dayOfMonth,
+            )
+            selection.anchor == today.minusDays(1) -> getString(
+                R.string.report_range_yesterday,
+                selection.anchor.monthValue,
+                selection.anchor.dayOfMonth,
+            )
+            else -> getString(
+                R.string.report_range_day,
+                selection.anchor.year,
+                selection.anchor.monthValue,
+                selection.anchor.dayOfMonth,
+            )
         }
-    }
-
-    private suspend fun buildMonthHeatmap(
-        dao: com.akira.clock.data.SessionDao,
-        today: LocalDate,
-        zone: ZoneId,
-    ): HeatmapData {
-        val monthStart = today.withDayOfMonth(1)
-        val endExclusive = today.plusDays(1)
-        val startMs = monthStart.atStartOfDay(zone).toInstant().toEpochMilli()
-        val endMs = endExclusive.atStartOfDay(zone).toInstant().toEpochMilli()
-        val days = (endExclusive.toEpochDay() - monthStart.toEpochDay()).toInt()
-        val rows = dao.focusByDayIndex(startMs, endMs)
-        val data = rows.associate { it.dayIndex to (it.totalMs / 60_000).toInt() }
-        return HeatmapData(data, monthStart, days)
-    }
-
-    private suspend fun buildYearHeatmap(
-        dao: com.akira.clock.data.SessionDao,
-        today: LocalDate,
-        zone: ZoneId,
-    ): HeatmapData {
-        val yearStart = today.withDayOfYear(1)
-        val endExclusive = today.plusDays(1)
-        val startMs = yearStart.atStartOfDay(zone).toInstant().toEpochMilli()
-        val endMs = endExclusive.atStartOfDay(zone).toInstant().toEpochMilli()
-        val days = (endExclusive.toEpochDay() - yearStart.toEpochDay()).toInt()
-        val rows = dao.focusByDayIndex(startMs, endMs)
-        val data = rows.associate { it.dayIndex to (it.totalMs / 60_000).toInt() }
-        return HeatmapData(data, yearStart, days)
-    }
-
-    private suspend fun buildAllTimeHeatmap(
-        dao: com.akira.clock.data.SessionDao,
-        today: LocalDate,
-        zone: ZoneId,
-    ): HeatmapData {
-        val allSessions = dao.allForExport()
-        if (allSessions.isEmpty()) return HeatmapData(emptyMap(), today, 1)
-        val earliest = java.time.Instant.ofEpochMilli(allSessions.minOf { it.startedAtUtcMs })
-            .atZone(zone)
-            .toLocalDate()
-        val startMs = earliest.atStartOfDay(zone).toInstant().toEpochMilli()
-        val endMs = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        val days = (today.toEpochDay() - earliest.toEpochDay() + 1).toInt()
-        val rows = dao.focusByDayIndex(startMs, endMs)
-        val data = rows.associate { it.dayIndex to (it.totalMs / 60_000).toInt() }
-        return HeatmapData(data, earliest, days)
     }
 
     private fun buildDetailItems(data: ReportData): List<ReportItem> {
@@ -262,26 +540,35 @@ class ReportsFragment : Fragment(R.layout.fragment_reports) {
 }
 
 private sealed class ReportItem {
+    data object Controls : ReportItem()
     data class Heatmap(val title: String, val data: HeatmapData) : ReportItem()
-    data class BarChart(val title: String, val bars: List<com.akira.clock.ui.render.BarChartView.TimeBarItem>) : ReportItem()
+    data class LineChart(
+        val title: String,
+        val points: List<LineChartView.TimePoint>,
+    ) : ReportItem()
     data class Section(val title: String) : ReportItem()
     data class TagRow(val row: ReportRow) : ReportItem()
     data class SessionRow(val session: SessionEntity, val colorArgb: Long) : ReportItem()
 }
 
-private class ReportAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+private class ReportAdapter(
+    private val controlsHeader: View?,
+    private val onPreviousHeatmapPage: () -> Unit,
+    private val onNextHeatmapPage: () -> Unit,
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private var items: List<ReportItem> = emptyList()
 
     fun submit(newItems: List<ReportItem>) {
-        items = newItems
+        items = if (controlsHeader == null) newItems else listOf(ReportItem.Controls) + newItems
         notifyDataSetChanged()
     }
 
     override fun getItemCount(): Int = items.size
 
     override fun getItemViewType(position: Int): Int = when (items[position]) {
+        ReportItem.Controls -> TYPE_CONTROLS
         is ReportItem.Heatmap -> TYPE_HEATMAP
-        is ReportItem.BarChart -> TYPE_BARCHART
+        is ReportItem.LineChart -> TYPE_LINECHART
         is ReportItem.Section -> TYPE_SECTION
         is ReportItem.TagRow -> TYPE_TAG
         is ReportItem.SessionRow -> TYPE_SESSION
@@ -290,40 +577,74 @@ private class ReportAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_HEATMAP -> HeatmapViewHolder(inflater.inflate(R.layout.item_chart_heatmap, parent, false))
-            TYPE_BARCHART -> BarChartViewHolder(inflater.inflate(R.layout.item_chart_barchart, parent, false))
-            TYPE_SECTION -> SectionViewHolder(inflater.inflate(R.layout.item_report_section, parent, false))
+            TYPE_CONTROLS -> object : RecyclerView.ViewHolder(requireNotNull(controlsHeader)) {}
+            TYPE_HEATMAP -> HeatmapViewHolder(
+                inflater.inflate(R.layout.item_chart_heatmap, parent, false),
+                onPreviousHeatmapPage,
+                onNextHeatmapPage,
+            )
+            TYPE_LINECHART -> LineChartViewHolder(
+                inflater.inflate(R.layout.item_chart_linechart, parent, false),
+            )
+            TYPE_SECTION -> SectionViewHolder(
+                inflater.inflate(R.layout.item_report_section, parent, false),
+            )
             TYPE_TAG -> TagViewHolder(inflater.inflate(R.layout.item_report, parent, false))
-            else -> SessionViewHolder(inflater.inflate(R.layout.item_report_session, parent, false))
+            else -> SessionViewHolder(
+                inflater.inflate(R.layout.item_report_session, parent, false),
+            )
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
+            ReportItem.Controls -> Unit
             is ReportItem.Heatmap -> (holder as HeatmapViewHolder).bind(item)
-            is ReportItem.BarChart -> (holder as BarChartViewHolder).bind(item)
+            is ReportItem.LineChart -> (holder as LineChartViewHolder).bind(item)
             is ReportItem.Section -> (holder as SectionViewHolder).bind(item)
             is ReportItem.TagRow -> (holder as TagViewHolder).bind(item.row)
-            is ReportItem.SessionRow -> (holder as SessionViewHolder).bind(item.session, item.colorArgb)
+            is ReportItem.SessionRow -> (holder as SessionViewHolder).bind(
+                item.session, item.colorArgb,
+            )
         }
     }
 
     private companion object {
+        const val TYPE_CONTROLS = 5
         const val TYPE_HEATMAP = 0
-        const val TYPE_BARCHART = 1
+        const val TYPE_LINECHART = 1
         const val TYPE_SECTION = 2
         const val TYPE_TAG = 3
         const val TYPE_SESSION = 4
     }
 }
 
-private class HeatmapViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+private class HeatmapViewHolder(
+    view: View,
+    private val onPreviousPage: () -> Unit,
+    private val onNextPage: () -> Unit,
+) : RecyclerView.ViewHolder(view) {
     private val title: TextView = view.findViewById(R.id.chart_title)
     private val heatmap: HeatmapView = view.findViewById(R.id.chart_heatmap)
+    private val pagePrevious: ImageButton = view.findViewById(R.id.heatmap_page_previous)
+    private val pageTitle: TextView = view.findViewById(R.id.heatmap_page_title)
+    private val pageNext: ImageButton = view.findViewById(R.id.heatmap_page_next)
 
     fun bind(item: ReportItem.Heatmap) {
         title.text = item.title
-        heatmap.setData(item.data.activityData, item.data.rangeStart, item.data.days)
+        pageTitle.text = item.data.pageTitle
+        pagePrevious.isEnabled = item.data.previousEnabled
+        pagePrevious.alpha = if (item.data.previousEnabled) 1f else 0.28f
+        pageNext.isEnabled = item.data.nextEnabled
+        pageNext.alpha = if (item.data.nextEnabled) 1f else 0.28f
+        pagePrevious.setOnClickListener { onPreviousPage() }
+        pageNext.setOnClickListener { onNextPage() }
+        heatmap.setData(
+            item.data.activityData,
+            item.data.rangeStart,
+            item.data.days,
+            item.data.visibleThrough,
+        )
     }
 }
 
@@ -331,15 +652,19 @@ private data class HeatmapData(
     val activityData: Map<Int, Int>,
     val rangeStart: LocalDate,
     val days: Int,
+    val visibleThrough: LocalDate,
+    val pageTitle: String,
+    val previousEnabled: Boolean,
+    val nextEnabled: Boolean,
 )
 
-private class BarChartViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+private class LineChartViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     private val title: TextView = view.findViewById(R.id.chart_title)
-    private val barchart: BarChartView = view.findViewById(R.id.chart_barchart)
+    private val linechart: LineChartView = view.findViewById(R.id.chart_linechart)
 
-    fun bind(item: ReportItem.BarChart) {
+    fun bind(item: ReportItem.LineChart) {
         title.text = item.title
-        barchart.setTimeData(item.bars)
+        linechart.setTimeData(item.points)
     }
 }
 
@@ -363,7 +688,6 @@ private class TagViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             R.string.report_row,
             row.categoryName,
             formatDuration(text.context, row.focusMs),
-            formatDuration(text.context, row.warmupMs),
             row.completedCount,
             row.abortedCount,
         )
@@ -389,7 +713,6 @@ private class SessionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             R.string.report_session_detail,
             formatSessionDate(session),
             formatDuration(detail.context, session.actualFocusMs),
-            formatDuration(detail.context, session.actualWarmupMs),
         )
         val abortReason = session.abortReason
         if (abortReason.isNullOrBlank()) {

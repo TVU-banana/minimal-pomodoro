@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+/** User-defined category tag with display color, default durations, and daily goal. */
 @Entity(tableName = "categories")
 internal data class CategoryEntity(
     @PrimaryKey val id: String,
@@ -17,6 +18,9 @@ internal data class CategoryEntity(
     val archivedAtUtcMs: Long? = null,
 )
 
+/**
+ * Pre-configured time block preset specifying task name, primary category, and planned durations.
+ */
 @Entity(
     tableName = "task_presets",
     foreignKeys = [
@@ -33,14 +37,44 @@ internal data class TaskPresetEntity(
     @PrimaryKey val id: String,
     val name: String,
     val categoryId: String,
+    // Presets store formal focus; warmup is added only when creating a new domain command.
     val totalDurationMs: Long,
     val warmupDurationMs: Long,
+    val timerMode: String = "COUNTDOWN",
     val timerStyle: String = TimerStyle.DIGITAL.name,
     val backgroundAssetId: String? = null,
     val createdAtUtcMs: Long,
     val updatedAtUtcMs: Long,
 )
 
+/** A user-visible tag attached to a time block. The first tag remains the legacy primary tag. */
+@Entity(
+    tableName = "task_preset_tags",
+    primaryKeys = ["presetId", "categoryId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = TaskPresetEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["presetId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.RESTRICT,
+        ),
+    ],
+    indices = [Index("categoryId")],
+)
+internal data class TaskPresetTagEntity(
+    val presetId: String,
+    val categoryId: String,
+)
+
+/**
+ * Durable record of an executed timer session, capturing snapshot names and actual durations.
+ */
 @Entity(
     tableName = "sessions",
     indices = [Index("categoryId"), Index("startedAtUtcMs"), Index("status")],
@@ -64,6 +98,9 @@ internal data class SessionEntity(
     val updatedAtUtcMs: Long,
 )
 
+/**
+ * Granular timer activity segment (warmup or focus), cascading on session deletion.
+ */
 @Entity(
     tableName = "session_segments",
     foreignKeys = [
@@ -84,6 +121,9 @@ internal data class SessionSegmentEntity(
     val endedAtUtcMs: Long?,
 )
 
+/**
+ * Singleton active timer state checkpoint used for process death and reboot recovery.
+ */
 @Entity(tableName = "timer_checkpoint")
 internal data class TimerCheckpointEntity(
     @PrimaryKey val singletonId: Int = SINGLETON_ID,
@@ -105,6 +145,9 @@ internal data class TimerCheckpointEntity(
     }
 }
 
+/**
+ * Local media asset record tracked by SHA-256 digest and reference count.
+ */
 @Entity(tableName = "assets", indices = [Index(value = ["sha256"], unique = true)])
 internal data class AssetEntity(
     @PrimaryKey val id: String,
@@ -114,6 +157,18 @@ internal data class AssetEntity(
     val height: Int,
     val referenceCount: Int,
     val createdAtUtcMs: Long,
+)
+
+/**
+ * One user-authored reflection for a local calendar day. Blank content is represented by no row.
+ */
+@Entity(tableName = "daily_reflections")
+internal data class DailyReflectionEntity(
+    @PrimaryKey val localDateIso: String,
+    val timezoneIdAtWrite: String,
+    val text: String,
+    val createdAtUtcMs: Long,
+    val updatedAtUtcMs: Long,
 )
 
 internal enum class SessionStatus { RUNNING, PAUSED, COMPLETED, ABORTED }
@@ -135,10 +190,5 @@ internal data class CategoryReportRow(
 
 internal data class DayFocusRow(
     val dayIndex: Int,
-    val totalMs: Long,
-)
-
-internal data class HourFocusRow(
-    val hourIndex: Int,
     val totalMs: Long,
 )

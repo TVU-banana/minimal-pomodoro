@@ -8,14 +8,18 @@ import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Android storage adapter for exporting and atomically importing Clock data. */
+/**
+ * Exports a consistent Room snapshot and merges a fully validated archive in one write transaction.
+ * Timer state and habit state share storage only; their records retain separate identifiers.
+ */
 internal class ClockBackupService(
     private val context: Context,
     private val database: ClockDatabase,
 ) {
     suspend fun exportArchive(destination: Uri) = withContext(Dispatchers.IO) {
-        val bundle = readBundle()
-        val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
+        val bundle = database.withTransaction { readBundle() }
+        val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            ?: "unknown"
         val stream = requireNotNull(context.contentResolver.openOutputStream(destination, "w"))
         stream.use { ClockBackupArchive.write(bundle, version, Instant.now(), it) }
     }
@@ -27,7 +31,9 @@ internal class ClockBackupService(
     }
 
     suspend fun importArchive(source: Uri) = withContext(Dispatchers.IO) {
-        val bytes = requireNotNull(context.contentResolver.openInputStream(source)).use { it.readBytes() }
+        val bytes = requireNotNull(context.contentResolver.openInputStream(source)).use {
+            it.readBytes()
+        }
         val validated = ClockBackupArchive.read(bytes)
         val incoming = validated.bundle
         database.withTransaction {
@@ -38,8 +44,12 @@ internal class ClockBackupService(
             database.sessionDao().upsertAll(merged.sessions)
             database.sessionSegmentDao().upsertAll(merged.segments)
             database.assetDao().upsertAll(merged.assets)
+            database.dailyReflectionDao().upsertAll(merged.reflections)
+            database.habitDao().upsertHabits(merged.habits)
+            database.habitDao().upsertCheckIns(merged.habitCheckIns)
+            database.habitDao().upsertTargets(merged.habitTargets)
         }
-        // Media has already passed SHA-256 validation. Orphan files are safe if later DB work fails.
+        // Verified media is materialized after the transaction; existing files are reused.
         val backgroundDir = java.io.File(context.filesDir, "backgrounds").apply { mkdirs() }
         incoming.media.forEach { (digest, content) ->
             val destination = java.io.File(backgroundDir, "$digest.webp")
@@ -53,6 +63,10 @@ internal class ClockBackupService(
         sessions = database.sessionDao().allForExport(),
         segments = database.sessionSegmentDao().allForExport(),
         assets = database.assetDao().allForExport(),
+        reflections = database.dailyReflectionDao().allForExport(),
+        habits = database.habitDao().getAll(),
+        habitCheckIns = database.habitDao().getAllCheckIns(),
+        habitTargets = database.habitDao().getAllTargets(),
         media = database.assetDao().allForExport().mapNotNull { asset ->
             val file = java.io.File(context.filesDir, asset.localPath)
             if (file.isFile) asset.sha256 to file.readBytes() else null

@@ -47,14 +47,18 @@ internal abstract class BaseTimerView @JvmOverloads constructor(
         stageText = context.getString(stageLabelResource(state.stage))
         contentDescription = if (state.categoryName.isBlank()) {
             context.getString(
-                R.string.timer_accessibility_without_category,
+                if (state.stopwatch) R.string.timer_elapsed_accessibility_without_category else {
+                    R.string.timer_accessibility_without_category
+                },
                 state.taskName,
                 stageText,
                 timeText,
             )
         } else {
             context.getString(
-                R.string.timer_accessibility_with_category,
+                if (state.stopwatch) R.string.timer_elapsed_accessibility_with_category else {
+                    R.string.timer_accessibility_with_category
+                },
                 state.taskName,
                 state.categoryName,
                 stageText,

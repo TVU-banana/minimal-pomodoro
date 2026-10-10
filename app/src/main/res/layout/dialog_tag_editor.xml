@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -17,7 +21,7 @@
     <EditText
         android:id="@+id/tag_name_input"
         style="@style/Clock.Input"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:hint="@string/tag_name_hint"
         android:importantForAutofill="no"
         android:inputType="textCapSentences"
@@ -30,21 +34,25 @@
         android:text="@string/tag_color"
         android:textAppearance="@style/Clock.FieldLabel" />
 
-    <LinearLayout
-        android:id="@+id/color_swatches_container"
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:gravity="start"
-        android:orientation="horizontal" />
+        android:layout_marginTop="8dp">
+        <LinearLayout
+            android:id="@+id/color_swatches_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
 
     <Button
         android:id="@+id/add_color_button"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginTop="6dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
         android:gravity="center"
-        android:text="+"
+        android:text="@string/tag_color_add_symbol"
+        android:contentDescription="@string/tag_color_add_accessibility"
         android:textSize="24sp" />
 
     <TextView
@@ -57,7 +65,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -79,62 +87,6 @@
             android:layout_marginStart="@dimen/space_12" />
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_20"
-        android:orientation="horizontal">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:labelFor="@id/tag_total_input"
-                android:text="@string/timer_total_minutes"
-                android:textAppearance="@style/Clock.FieldLabel" />
-
-            <EditText
-                android:id="@+id/tag_total_input"
-                style="@style/Clock.Input"
-                android:layout_marginTop="6dp"
-                android:fontFamily="monospace"
-                android:importantForAutofill="no"
-                android:inputType="number"
-                android:maxLength="4"
-                android:text="60" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/space_12"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:labelFor="@id/tag_warmup_input"
-                android:text="@string/timer_warmup_minutes"
-                android:textAppearance="@style/Clock.FieldLabel" />
-
-            <EditText
-                android:id="@+id/tag_warmup_input"
-                style="@style/Clock.Input"
-                android:layout_marginTop="6dp"
-                android:fontFamily="monospace"
-                android:importantForAutofill="no"
-                android:inputType="number"
-                android:maxLength="3"
-                android:text="15" />
-        </LinearLayout>
-    </LinearLayout>
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -146,10 +98,11 @@
     <EditText
         android:id="@+id/tag_daily_goal_input"
         style="@style/Clock.Input"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:fontFamily="monospace"
         android:hint="@string/tag_daily_goal_hint"
         android:importantForAutofill="no"
         android:inputType="number"
         android:maxLength="4" />
 </LinearLayout>
+</ScrollView>

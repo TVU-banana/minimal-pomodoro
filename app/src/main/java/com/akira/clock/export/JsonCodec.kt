@@ -64,7 +64,9 @@ internal object JsonCodec {
             val fields = linkedMapOf<String, JsonValue>()
             if (take('}')) return JsonValue.Object(fields)
             while (true) {
-                if (position >= source.length || source[position] != '"') fail("object key expected")
+                if (position >= source.length || source[position] != '"') {
+                    fail("object key expected")
+                }
                 val key = readString()
                 skipWhitespace()
                 expect(':')
@@ -132,17 +134,23 @@ internal object JsonCodec {
             if (take('0')) {
                 if (position < source.length && source[position].isDigit()) fail("leading zero")
             } else {
-                if (position >= source.length || source[position] !in '1'..'9') fail("invalid number")
+                if (position >= source.length || source[position] !in '1'..'9') {
+                    fail("invalid number")
+                }
                 while (position < source.length && source[position].isDigit()) position++
             }
             if (take('.')) {
-                if (position >= source.length || !source[position].isDigit()) fail("invalid fraction")
+                if (position >= source.length || !source[position].isDigit()) {
+                    fail("invalid fraction")
+                }
                 while (position < source.length && source[position].isDigit()) position++
             }
             if (position < source.length && source[position] in "eE") {
                 position++
                 if (position < source.length && source[position] in "+-") position++
-                if (position >= source.length || !source[position].isDigit()) fail("invalid exponent")
+                if (position >= source.length || !source[position].isDigit()) {
+                    fail("invalid exponent")
+                }
                 while (position < source.length && source[position].isDigit()) position++
             }
             return JsonValue.NumberValue(source.substring(start, position))
@@ -168,7 +176,8 @@ internal object JsonCodec {
             while (position < source.length && source[position] in " \t\r\n") position++
         }
 
-        private fun fail(reason: String): Nothing = throw BackupFormatException("Invalid JSON at $position: $reason")
+        private fun fail(reason: String): Nothing =
+            throw BackupFormatException("Invalid JSON at $position: $reason")
     }
 }
 
@@ -179,14 +188,20 @@ internal fun JsonValue.arrayValue(name: String): List<JsonValue> =
     (this as? JsonValue.Array)?.values ?: throw BackupFormatException("$name must be an array")
 
 internal fun Map<String, JsonValue>.requiredString(name: String): String =
-    (this[name] as? JsonValue.StringValue)?.value ?: throw BackupFormatException("$name must be a string")
+    (this[name] as? JsonValue.StringValue)?.value
+        ?: throw BackupFormatException("$name must be a string")
 
-internal fun Map<String, JsonValue>.optionalString(name: String): String? = when (val value = this[name]) {
-    null, JsonValue.NullValue -> null
-    is JsonValue.StringValue -> value.value
-    else -> throw BackupFormatException("$name must be a string or null")
-}
+internal fun Map<String, JsonValue>.optionalString(name: String): String? =
+    when (val value = this[name]) {
+        null, JsonValue.NullValue -> null
+        is JsonValue.StringValue -> value.value
+        else -> throw BackupFormatException("$name must be a string or null")
+    }
 
 internal fun Map<String, JsonValue>.requiredLong(name: String): Long =
     (this[name] as? JsonValue.NumberValue)?.source?.toLongOrNull()
         ?: throw BackupFormatException("$name must be an integer")
+
+internal fun Map<String, JsonValue>.requiredBoolean(name: String): Boolean =
+    (this[name] as? JsonValue.BooleanValue)?.value
+        ?: throw BackupFormatException("$name must be a boolean")

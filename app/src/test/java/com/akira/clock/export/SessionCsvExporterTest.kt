@@ -22,6 +22,7 @@ class SessionCsvExporterTest {
         val csv = SessionCsvExporter.export(backup.sessions)
         val first = backup.sessions.minBy { it.startedAtUtcMs }
 
-        assertTrue(csv.indexOf(first.id) < csv.indexOf(backup.sessions.maxBy { it.startedAtUtcMs }.id))
+        val last = backup.sessions.maxBy { it.startedAtUtcMs }
+        assertTrue(csv.indexOf(first.id) < csv.indexOf(last.id))
     }
 }

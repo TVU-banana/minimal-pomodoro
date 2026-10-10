@@ -1,9 +1,13 @@
 package com.akira.clock.export
 
 import com.akira.clock.data.CategoryEntity
+import com.akira.clock.data.DailyReflectionEntity
+import com.akira.clock.data.HabitCheckInEntity
+import com.akira.clock.data.HabitEntity
 import com.akira.clock.data.SessionEntity
 import com.akira.clock.data.SessionStatus
 import com.akira.clock.data.TaskPresetEntity
+import java.time.Instant
 
 internal fun sampleBackup(categoryName: String = "学习"): BackupBundle {
     val category = CategoryEntity(
@@ -35,7 +39,20 @@ internal fun sampleBackup(categoryName: String = "学习"): BackupBundle {
         preset = preset,
         startedAt = 1_752_541_260_000,
     )
-    return BackupBundle(listOf(category), listOf(preset), listOf(later, earlier))
+    return BackupBundle(
+        categories = listOf(category),
+        presets = listOf(preset),
+        sessions = listOf(later, earlier),
+        reflections = listOf(
+            DailyReflectionEntity(
+                localDateIso = "2026-07-15",
+                timezoneIdAtWrite = "Asia/Shanghai",
+                text = "完成了重点任务\n复盘了时间分配 😀",
+                createdAtUtcMs = 1_752_541_200_000,
+                updatedAtUtcMs = 1_752_541_260_000,
+            ),
+        ),
+    )
 }
 
 internal fun sampleSession(
@@ -59,3 +76,49 @@ internal fun sampleSession(
     createdAtUtcMs = startedAt,
     updatedAtUtcMs = startedAt + 3_600_000,
 )
+
+internal fun sampleHabitBackup(): BackupBundle {
+    val createdAt = Instant.parse("2026-07-13T08:00:00Z").toEpochMilli()
+    val completedAt = createdAt + 86_400_000
+    val active = HabitEntity(
+        id = "10289410-c0d8-4d10-b480-b1b575355c03",
+        name = "阅读",
+        sortOrder = 1,
+        createdLocalDateIso = "2026-07-13",
+        createdAtUtcMs = createdAt,
+        updatedAtUtcMs = createdAt,
+    )
+    val archived = active.copy(
+        id = "20289410-c0d8-4d10-b480-b1b575355c03",
+        name = "散步",
+        sortOrder = 0,
+        archivedLocalDateIso = "2026-07-15",
+        updatedAtUtcMs = completedAt + 86_400_000,
+    )
+    return sampleBackup().copy(
+        habits = listOf(archived, active),
+        habitCheckIns = listOf(
+            HabitCheckInEntity(
+                habitId = active.id,
+                localDateIso = "2026-07-15",
+                completed = false,
+                completedAtUtcMs = null,
+                updatedAtUtcMs = completedAt + 86_400_001,
+            ),
+            HabitCheckInEntity(
+                habitId = archived.id,
+                localDateIso = "2026-07-14",
+                completed = true,
+                completedAtUtcMs = completedAt,
+                updatedAtUtcMs = completedAt,
+            ),
+            HabitCheckInEntity(
+                habitId = active.id,
+                localDateIso = "2026-07-14",
+                completed = true,
+                completedAtUtcMs = completedAt,
+                updatedAtUtcMs = completedAt,
+            ),
+        ),
+    )
+}

@@ -24,7 +24,7 @@ internal object TagColors {
     /** Parses `#RRGGBB` or `RRGGBB` into a fully opaque ARGB long, or null when malformed. */
     fun parseHex(input: String): Long? {
         val cleaned = input.trim().removePrefix("#")
-        if (cleaned.length != 6) return null
+        if (cleaned.length != 6 || cleaned.any { it.digitToIntOrNull(16) == null }) return null
         val rgb = cleaned.toLongOrNull(16) ?: return null
         return 0xFF000000L or rgb
     }

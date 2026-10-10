@@ -13,15 +13,9 @@
         android:textColor="@color/clock_on_surface"
         android:textSize="14sp" />
 
-    <HorizontalScrollView
+    <com.akira.clock.ui.render.LineChartView
+        android:id="@+id/chart_linechart"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8"
-        android:scrollbars="none">
-
-        <com.akira.clock.ui.render.BarChartView
-            android:id="@+id/chart_barchart"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-    </HorizontalScrollView>
+        android:layout_height="220dp"
+        android:layout_marginTop="@dimen/space_8" />
 </LinearLayout>

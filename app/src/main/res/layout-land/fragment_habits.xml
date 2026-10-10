@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/clock_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:paddingHorizontal="@dimen/screen_gutter" android:paddingTop="8dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/habit_previous" android:layout_width="48dp" android:layout_height="48dp" android:padding="14dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/habit_previous_week" app:srcCompat="@drawable/ic_chevron_left" app:tint="@color/clock_on_surface" />
+            <TextView android:id="@+id/habit_month" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:minHeight="48dp" android:gravity="center" android:background="?attr/selectableItemBackground" android:focusable="true" android:textColor="@color/clock_on_surface" android:textSize="16sp" android:fontFamily="sans-serif-medium" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/habit_next" android:layout_width="48dp" android:layout_height="48dp" android:padding="14dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/habit_next_week" app:srcCompat="@drawable/ic_chevron_right" app:tint="@color/clock_on_surface" />
+            <TextView android:id="@+id/habit_progress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" android:textColor="@color/clock_on_surface_muted" android:textSize="14sp" android:layout_marginEnd="12dp" android:gravity="center_vertical" android:minHeight="48dp" />
+            <TextView android:id="@+id/habit_today" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="72dp" android:minHeight="48dp" android:gravity="center" android:background="?attr/selectableItemBackground" android:focusable="true" android:text="@string/habit_return_today" android:textColor="@color/clock_primary" android:textSize="14sp" />
+        </LinearLayout>
+        <HorizontalScrollView android:id="@+id/habit_date_scroll" android:layout_width="match_parent" android:layout_height="wrap_content" android:fillViewport="true" android:scrollbars="none">
+            <LinearLayout android:id="@+id/habit_days" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+        </HorizontalScrollView>
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/clock_outline_soft" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/habit_list" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:paddingBottom="96dp" />
+            <LinearLayout android:id="@+id/habit_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center" android:gravity="center_horizontal" android:orientation="vertical" android:paddingVertical="24dp">
+                <TextView android:id="@+id/habit_empty_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="@string/habit_empty_title" android:textColor="@color/clock_on_surface" android:textSize="20sp" />
+                <TextView android:id="@+id/habit_empty_message" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center" android:text="@string/habit_empty_message" android:textSize="14sp" android:textColor="@color/clock_on_surface_muted" />
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
+    <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/habit_add" android:layout_width="56dp" android:layout_height="56dp" android:layout_gravity="bottom|end" android:layout_marginEnd="24dp" android:layout_marginBottom="20dp" android:background="@drawable/bg_habit_add" android:contentDescription="@string/habit_new" android:padding="16dp" android:elevation="0dp" android:stateListAnimator="@null" app:srcCompat="@drawable/ic_add_preset_thin" app:tint="@color/clock_background" app:backgroundTint="@null" />
+</FrameLayout>

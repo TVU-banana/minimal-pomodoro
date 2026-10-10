@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="4dp">
+
+    <ImageView
+        android:id="@+id/poster_live_preview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/poster_preview_title" />
+
+    <CheckBox
+        android:id="@+id/poster_chart_choice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:buttonTint="@color/clock_checkable_tint"
+        android:text="@string/poster_section_chart" />
+
+    <CheckBox
+        android:id="@+id/poster_reflection_choice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:buttonTint="@color/clock_checkable_tint"
+        android:text="@string/poster_section_reflection" />
+
+    <EditText
+        android:id="@+id/poster_reflection_input"
+        style="@style/Clock.Input"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:gravity="top|start"
+        android:hint="@string/poster_reflection_hint"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLines="4" />
+
+    <TextView
+        android:id="@+id/poster_reflection_counter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:textColor="@color/clock_on_surface_muted"
+        android:textSize="12sp" />
+
+    <CheckBox
+        android:id="@+id/poster_motivation_choice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:buttonTint="@color/clock_checkable_tint"
+        android:text="@string/poster_section_motivation" />
+</LinearLayout>
+</ScrollView>

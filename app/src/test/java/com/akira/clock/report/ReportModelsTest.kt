@@ -26,10 +26,12 @@ class ReportModelsTest {
     }
 
     @Test
-    fun allTimeRangeCoversEverySession() {
-        val range = reportRange(ReportPeriod.ALL_TIME, LocalDate.of(2026, 7, 17), ZoneId.of("UTC"))
-        assertEquals(0L, range.fromUtcMs)
-        assertEquals(Long.MAX_VALUE, range.toUtcMs)
+    fun yearRangeStartsOnTheFirstDayOfTheYear() {
+        val zone = ZoneId.of("UTC")
+        val range = reportRange(ReportPeriod.YEAR, LocalDate.of(2026, 7, 17), zone)
+        val start = java.time.Instant.ofEpochMilli(range.fromUtcMs).atZone(zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 1, 1), start)
     }
 
     @Test

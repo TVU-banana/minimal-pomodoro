@@ -1,5 +1,6 @@
 package com.akira.clock.ui
 
+import com.akira.clock.timer.TimerMode
 import com.akira.clock.timer.TimerSnapshot
 import com.akira.clock.timer.TimerStage
 import com.akira.clock.timer.remainingMs
@@ -13,6 +14,22 @@ internal object TimerUiStateFactory {
         categoryName: String,
         nowElapsedMs: Long,
     ): TimerUiState {
+        if (snapshot.mode == TimerMode.STOPWATCH) {
+            val activeElapsed = snapshot.phaseStartedElapsedMs?.let {
+                (nowElapsedMs - it).coerceAtLeast(0L)
+            } ?: 0L
+            return TimerUiState(
+                stage = snapshot.stage,
+                taskName = taskName,
+                categoryName = categoryName,
+                remainingMs = snapshot.accumulatedFocusMs + activeElapsed,
+                phaseDurationMs = 0L,
+                totalProgress = 0f,
+                phaseProgress = 0f,
+                paused = snapshot.stage == TimerStage.Paused,
+                stopwatch = true,
+            )
+        }
         val activeRemaining = snapshot.phaseDeadlineElapsedMs?.let {
             remainingMs(it, nowElapsedMs)
         }
@@ -55,6 +72,7 @@ internal object TimerUiStateFactory {
                 elapsedInPhase.toFloat() / phaseDuration
             },
             paused = snapshot.stage == TimerStage.Paused,
+            stopwatch = false,
         )
     }
 }

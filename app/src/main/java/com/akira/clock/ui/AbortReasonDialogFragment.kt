@@ -33,6 +33,7 @@ internal class AbortReasonDialogFragment : DialogFragment() {
             .setNegativeButton(R.string.abort_cancel, null)
             .create()
         dialog.setOnShowListener {
+            dialog.applyClockDialogTheme()
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val reason = reasonInput?.text?.toString().orEmpty().trim().ifBlank { null }
                 (parentFragment as? Listener)?.onAbortConfirmed(reason)
