@@ -1,0 +1,71 @@
+{
+  "svg_documents": 77,
+  "native_xml_documents": 102,
+  "suites": [
+    {
+      "id": "A",
+      "resource_compile": "passed",
+      "resource_link": "passed",
+      "path_parity": 31,
+      "native_xml_count": 34
+    },
+    {
+      "id": "B",
+      "resource_compile": "passed",
+      "resource_link": "passed",
+      "path_parity": 39,
+      "native_xml_count": 34
+    },
+    {
+      "id": "C",
+      "resource_compile": "passed",
+      "resource_link": "passed",
+      "path_parity": 32,
+      "native_xml_count": 34
+    }
+  ],
+  "contrast": [
+    {
+      "theme": "light",
+      "role": "clock_on_surface",
+      "background": "#F8F8F5",
+      "foreground": "#202322",
+      "ratio": 14.9
+    },
+    {
+      "theme": "light",
+      "role": "clock_on_surface_muted",
+      "background": "#F8F8F5",
+      "foreground": "#646965",
+      "ratio": 5.26
+    },
+    {
+      "theme": "light",
+      "role": "clock_primary",
+      "background": "#F8F8F5",
+      "foreground": "#315BCB",
+      "ratio": 5.66
+    },
+    {
+      "theme": "dark",
+      "role": "clock_on_surface",
+      "background": "#1B1B1D",
+      "foreground": "#F2F2F3",
+      "ratio": 15.37
+    },
+    {
+      "theme": "dark",
+      "role": "clock_on_surface_muted",
+      "background": "#1B1B1D",
+      "foreground": "#B8B8BC",
+      "ratio": 8.7
+    },
+    {
+      "theme": "dark",
+      "role": "clock_primary",
+      "background": "#1B1B1D",
+      "foreground": "#ABC2FF",
+      "ratio": 9.74
+    }
+  ]
+}

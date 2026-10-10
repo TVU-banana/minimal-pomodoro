@@ -1,0 +1,529 @@
+{
+  "version": 1,
+  "canvas": 24,
+  "native_navigation_display_dp": 20,
+  "license": "GPL-3.0-or-later",
+  "suites": [
+    {
+      "id": "A",
+      "folder": "a-precision",
+      "name": "精密刻度",
+      "english": "PRECISION",
+      "weight": "1.8",
+      "style": "克制线条 · 精密仪表",
+      "description": "开口时环与精细线条，延续 Clock 的安静和秩序。",
+      "detail": "秒表、开放勾选框、趋势图、六齿齿轮。最贴近现有界面。",
+      "mapping": [
+        {
+          "name": "ic_play_outline",
+          "label": "开始任务",
+          "width": "36dp",
+          "height": "36dp",
+          "svg": "svg/ic_play_outline.svg",
+          "resource": "android-res/drawable/ic_play_outline.xml"
+        },
+        {
+          "name": "ic_play_primary",
+          "label": "继续",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_play_primary.svg",
+          "resource": "android-res/drawable/ic_play_primary.xml"
+        },
+        {
+          "name": "ic_pause_primary",
+          "label": "暂停",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_pause_primary.svg",
+          "resource": "android-res/drawable/ic_pause_primary.xml"
+        },
+        {
+          "name": "ic_stop_primary",
+          "label": "结束",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_stop_primary.svg",
+          "resource": "android-res/drawable/ic_stop_primary.xml"
+        },
+        {
+          "name": "ic_add_preset_thin",
+          "label": "添加",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_add_preset_thin.svg",
+          "resource": "android-res/drawable/ic_add_preset_thin.xml"
+        },
+        {
+          "name": "ic_chevron_left",
+          "label": "上一页",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_chevron_left.svg",
+          "resource": "android-res/drawable/ic_chevron_left.xml"
+        },
+        {
+          "name": "ic_chevron_right",
+          "label": "下一页",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_chevron_right.svg",
+          "resource": "android-res/drawable/ic_chevron_right.xml"
+        },
+        {
+          "name": "ic_more",
+          "label": "更多",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_more.svg",
+          "resource": "android-res/drawable/ic_more.xml"
+        },
+        {
+          "name": "ic_habit_check",
+          "label": "已完成",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_habit_check.svg",
+          "resource": "android-res/drawable/ic_habit_check.xml"
+        },
+        {
+          "name": "ic_habit_unchecked",
+          "label": "未完成",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_habit_unchecked.svg",
+          "resource": "android-res/drawable/ic_habit_unchecked.xml"
+        },
+        {
+          "name": "ic_theme_sun",
+          "label": "浅色主题",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_theme_sun.svg",
+          "resource": "android-res/drawable/ic_theme_sun.xml"
+        },
+        {
+          "name": "ic_theme_moon",
+          "label": "深色主题",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_theme_moon.svg",
+          "resource": "android-res/drawable/ic_theme_moon.xml"
+        },
+        {
+          "name": "ic_delete_outline",
+          "label": "删除",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_delete_outline.svg",
+          "resource": "android-res/drawable/ic_delete_outline.xml"
+        },
+        {
+          "name": "ic_manage_tags",
+          "label": "标签",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_manage_tags.svg",
+          "resource": "android-res/drawable/ic_manage_tags.xml"
+        },
+        {
+          "name": "ic_nav_timer",
+          "label": "计时",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_timer.svg",
+          "resource": "android-res/drawable/ic_nav_timer.xml"
+        },
+        {
+          "name": "ic_nav_habits",
+          "label": "打卡",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_habits.svg",
+          "resource": "android-res/drawable/ic_nav_habits.xml"
+        },
+        {
+          "name": "ic_nav_reports",
+          "label": "记录",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_reports.svg",
+          "resource": "android-res/drawable/ic_nav_reports.xml"
+        },
+        {
+          "name": "ic_nav_settings",
+          "label": "设置",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_settings.svg",
+          "resource": "android-res/drawable/ic_nav_settings.xml"
+        },
+        {
+          "name": "ic_notification_timer",
+          "label": "计时通知",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_notification_timer.svg",
+          "resource": "android-res/drawable/ic_notification_timer.xml"
+        },
+        {
+          "name": "ic_clock",
+          "label": "应用图标",
+          "svg": "svg/ic_clock.svg",
+          "resource": "android-res/drawable/ic_clock.xml"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "folder": "b-rhythm",
+      "name": "温润日序",
+      "english": "RHYTHM",
+      "weight": "2.0",
+      "style": "柔和几何 · 日常陪伴",
+      "description": "用沙漏表达时间流动，用圆角与日历表达每天的积累。",
+      "detail": "沙漏、日历勾选、圆角柱图、调节滑杆。更温和、亲近。",
+      "mapping": [
+        {
+          "name": "ic_play_outline",
+          "label": "开始任务",
+          "width": "36dp",
+          "height": "36dp",
+          "svg": "svg/ic_play_outline.svg",
+          "resource": "android-res/drawable/ic_play_outline.xml"
+        },
+        {
+          "name": "ic_play_primary",
+          "label": "继续",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_play_primary.svg",
+          "resource": "android-res/drawable/ic_play_primary.xml"
+        },
+        {
+          "name": "ic_pause_primary",
+          "label": "暂停",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_pause_primary.svg",
+          "resource": "android-res/drawable/ic_pause_primary.xml"
+        },
+        {
+          "name": "ic_stop_primary",
+          "label": "结束",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_stop_primary.svg",
+          "resource": "android-res/drawable/ic_stop_primary.xml"
+        },
+        {
+          "name": "ic_add_preset_thin",
+          "label": "添加",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_add_preset_thin.svg",
+          "resource": "android-res/drawable/ic_add_preset_thin.xml"
+        },
+        {
+          "name": "ic_chevron_left",
+          "label": "上一页",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_chevron_left.svg",
+          "resource": "android-res/drawable/ic_chevron_left.xml"
+        },
+        {
+          "name": "ic_chevron_right",
+          "label": "下一页",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_chevron_right.svg",
+          "resource": "android-res/drawable/ic_chevron_right.xml"
+        },
+        {
+          "name": "ic_more",
+          "label": "更多",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_more.svg",
+          "resource": "android-res/drawable/ic_more.xml"
+        },
+        {
+          "name": "ic_habit_check",
+          "label": "已完成",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_habit_check.svg",
+          "resource": "android-res/drawable/ic_habit_check.xml"
+        },
+        {
+          "name": "ic_habit_unchecked",
+          "label": "未完成",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_habit_unchecked.svg",
+          "resource": "android-res/drawable/ic_habit_unchecked.xml"
+        },
+        {
+          "name": "ic_theme_sun",
+          "label": "浅色主题",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_theme_sun.svg",
+          "resource": "android-res/drawable/ic_theme_sun.xml"
+        },
+        {
+          "name": "ic_theme_moon",
+          "label": "深色主题",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_theme_moon.svg",
+          "resource": "android-res/drawable/ic_theme_moon.xml"
+        },
+        {
+          "name": "ic_delete_outline",
+          "label": "删除",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_delete_outline.svg",
+          "resource": "android-res/drawable/ic_delete_outline.xml"
+        },
+        {
+          "name": "ic_manage_tags",
+          "label": "标签",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_manage_tags.svg",
+          "resource": "android-res/drawable/ic_manage_tags.xml"
+        },
+        {
+          "name": "ic_nav_timer",
+          "label": "计时",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_timer.svg",
+          "resource": "android-res/drawable/ic_nav_timer.xml"
+        },
+        {
+          "name": "ic_nav_habits",
+          "label": "打卡",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_habits.svg",
+          "resource": "android-res/drawable/ic_nav_habits.xml"
+        },
+        {
+          "name": "ic_nav_reports",
+          "label": "记录",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_reports.svg",
+          "resource": "android-res/drawable/ic_nav_reports.xml"
+        },
+        {
+          "name": "ic_nav_settings",
+          "label": "设置",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_settings.svg",
+          "resource": "android-res/drawable/ic_nav_settings.xml"
+        },
+        {
+          "name": "ic_notification_timer",
+          "label": "计时通知",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_notification_timer.svg",
+          "resource": "android-res/drawable/ic_notification_timer.xml"
+        },
+        {
+          "name": "ic_clock",
+          "label": "应用图标",
+          "svg": "svg/ic_clock.svg",
+          "resource": "android-res/drawable/ic_clock.xml"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "folder": "c-silhouette",
+      "name": "实心留白",
+      "english": "SILHOUETTE",
+      "weight": "filled",
+      "style": "清晰轮廓 · 留白识别",
+      "description": "靠轮廓与镂空传达含义，缩小后仍保持明确的视觉分量。",
+      "detail": "实心秒表、镂空勾选、三柱图、实心齿轮。小尺寸辨识更强。",
+      "mapping": [
+        {
+          "name": "ic_play_outline",
+          "label": "开始任务",
+          "width": "36dp",
+          "height": "36dp",
+          "svg": "svg/ic_play_outline.svg",
+          "resource": "android-res/drawable/ic_play_outline.xml"
+        },
+        {
+          "name": "ic_play_primary",
+          "label": "继续",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_play_primary.svg",
+          "resource": "android-res/drawable/ic_play_primary.xml"
+        },
+        {
+          "name": "ic_pause_primary",
+          "label": "暂停",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_pause_primary.svg",
+          "resource": "android-res/drawable/ic_pause_primary.xml"
+        },
+        {
+          "name": "ic_stop_primary",
+          "label": "结束",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_stop_primary.svg",
+          "resource": "android-res/drawable/ic_stop_primary.xml"
+        },
+        {
+          "name": "ic_add_preset_thin",
+          "label": "添加",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_add_preset_thin.svg",
+          "resource": "android-res/drawable/ic_add_preset_thin.xml"
+        },
+        {
+          "name": "ic_chevron_left",
+          "label": "上一页",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_chevron_left.svg",
+          "resource": "android-res/drawable/ic_chevron_left.xml"
+        },
+        {
+          "name": "ic_chevron_right",
+          "label": "下一页",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_chevron_right.svg",
+          "resource": "android-res/drawable/ic_chevron_right.xml"
+        },
+        {
+          "name": "ic_more",
+          "label": "更多",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_more.svg",
+          "resource": "android-res/drawable/ic_more.xml"
+        },
+        {
+          "name": "ic_habit_check",
+          "label": "已完成",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_habit_check.svg",
+          "resource": "android-res/drawable/ic_habit_check.xml"
+        },
+        {
+          "name": "ic_habit_unchecked",
+          "label": "未完成",
+          "width": "28dp",
+          "height": "28dp",
+          "svg": "svg/ic_habit_unchecked.svg",
+          "resource": "android-res/drawable/ic_habit_unchecked.xml"
+        },
+        {
+          "name": "ic_theme_sun",
+          "label": "浅色主题",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_theme_sun.svg",
+          "resource": "android-res/drawable/ic_theme_sun.xml"
+        },
+        {
+          "name": "ic_theme_moon",
+          "label": "深色主题",
+          "width": "20dp",
+          "height": "20dp",
+          "svg": "svg/ic_theme_moon.svg",
+          "resource": "android-res/drawable/ic_theme_moon.xml"
+        },
+        {
+          "name": "ic_delete_outline",
+          "label": "删除",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_delete_outline.svg",
+          "resource": "android-res/drawable/ic_delete_outline.xml"
+        },
+        {
+          "name": "ic_manage_tags",
+          "label": "标签",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_manage_tags.svg",
+          "resource": "android-res/drawable/ic_manage_tags.xml"
+        },
+        {
+          "name": "ic_nav_timer",
+          "label": "计时",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_timer.svg",
+          "resource": "android-res/drawable/ic_nav_timer.xml"
+        },
+        {
+          "name": "ic_nav_habits",
+          "label": "打卡",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_habits.svg",
+          "resource": "android-res/drawable/ic_nav_habits.xml"
+        },
+        {
+          "name": "ic_nav_reports",
+          "label": "记录",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_reports.svg",
+          "resource": "android-res/drawable/ic_nav_reports.xml"
+        },
+        {
+          "name": "ic_nav_settings",
+          "label": "设置",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_nav_settings.svg",
+          "resource": "android-res/drawable/ic_nav_settings.xml"
+        },
+        {
+          "name": "ic_notification_timer",
+          "label": "计时通知",
+          "width": "24dp",
+          "height": "24dp",
+          "svg": "svg/ic_notification_timer.svg",
+          "resource": "android-res/drawable/ic_notification_timer.xml"
+        },
+        {
+          "name": "ic_clock",
+          "label": "应用图标",
+          "svg": "svg/ic_clock.svg",
+          "resource": "android-res/drawable/ic_clock.xml"
+        }
+      ]
+    }
+  ],
+  "resource_aliases": {
+    "ic_add": "ic_add_preset_thin",
+    "ic_play": "ic_play_primary",
+    "ic_play_tag": "ic_play_primary",
+    "ic_play_white": "ic_play_primary",
+    "ic_pause": "ic_pause_primary",
+    "ic_pause_white": "ic_pause_primary",
+    "ic_stop": "ic_stop_primary",
+    "ic_stop_white": "ic_stop_primary",
+    "ic_stop_light": "ic_stop_primary"
+  }
+}

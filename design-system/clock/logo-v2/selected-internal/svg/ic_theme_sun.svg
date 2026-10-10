@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock A — 浅色主题</title>
+<desc id="desc">精密刻度; original path geometry; monochrome, themeable.</desc>
+<path d="M12,8a4,4 0 1 1 0,8a4,4 0 1 1 0,-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12,2.6V4M12,20V21.4M2.6,12H4M20,12H21.4M5.35,5.35L6.35,6.35M17.65,17.65L18.65,18.65M5.35,18.65L6.35,17.65M17.65,6.35L18.65,5.35" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

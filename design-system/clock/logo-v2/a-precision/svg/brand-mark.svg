@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock A — 应用标志</title>
+<desc id="desc">精密刻度; original path geometry; monochrome, themeable.</desc>
+<path d="M12,3A9,9 0 1 0 21,12" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12,7.15V12L16,14.3" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M17.301,3.746L17.301,3.746Q17.25,3.4 17.497,3.647L20.353,6.503Q20.6,6.75 20.253,6.793L18.147,7.057Q17.8,7.1 17.749,6.754Z" fill="currentColor"/>
+</svg>

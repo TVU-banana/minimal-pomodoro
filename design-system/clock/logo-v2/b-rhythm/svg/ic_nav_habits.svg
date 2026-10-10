@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock B — 打卡</title>
+<desc id="desc">温润日序; original path geometry; monochrome, themeable.</desc>
+<path d="M7,5.1H17a3.2,3.2 0 0 1 3.2,3.2V17a3.2,3.2 0 0 1 -3.2,3.2H7a3.2,3.2 0 0 1 -3.2,-3.2V8.3a3.2,3.2 0 0 1 3.2,-3.2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8,3V7M16,3V7M4,9.4H20M8.35,14.2L10.7,16.55L15.65,11.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

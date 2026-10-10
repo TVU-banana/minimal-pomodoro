@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock A — 已完成</title>
+<desc id="desc">精密刻度; original path geometry; monochrome, themeable.</desc>
+<path d="M12,2a10,10 0 1 1 0,20a10,10 0 1 1 0,-20ZM6.989,12.139L6.989,12.139Q6.65,11.8 6.989,11.461L7.711,10.739Q8.05,10.4 8.389,10.739L10.311,12.661Q10.65,13 10.989,12.661L15.911,7.739Q16.25,7.4 16.589,7.739L17.311,8.461Q17.65,8.8 17.311,9.139L10.989,15.461Q10.65,15.8 10.311,15.461Z" fill="currentColor" fill-rule="evenodd"/>
+</svg>

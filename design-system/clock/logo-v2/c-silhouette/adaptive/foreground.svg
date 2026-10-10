@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+<title id="title">Clock C foreground</title>
+<desc id="desc"></desc>
+<path d="M 54,27.945 a 26.055,26.055,0,1,1,0,52.11 a 26.055,26.055,0,1,1,0,-52.11 Z M 51.03,41.31 L 51.03,41.31 Q 51.03,39.96,52.38,39.96 L 55.62,39.96 Q 56.97,39.96,56.97,41.31 L 56.97,51.03 Q 56.97,52.38,58.136,53.06 L 66.469,57.91 Q 67.635,58.59,66.957,59.759 L 65.343,62.551 Q 64.665,63.72,63.493,63.048 L 52.202,56.562 Q 51.03,55.89,51.03,54.54 Z" fill="#FFFFFF" fill-rule="evenodd"/>
+</svg>

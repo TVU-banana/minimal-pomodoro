@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock A — 删除</title>
+<desc id="desc">精密刻度; original path geometry; monochrome, themeable.</desc>
+<path d="M4.7,6.4H19.3M9,6.4V3.6H15V6.4M6.3,6.4L7,18.6Q7.1,20.4 9,20.4H15Q16.9,20.4 17,18.6L17.7,6.4M10.1,10V16.9M13.9,10V16.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

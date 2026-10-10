@@ -8,4 +8,4 @@ captures/
 .DS_Store
 *.jks
 *.keystore
-
+app/libs/*.aar

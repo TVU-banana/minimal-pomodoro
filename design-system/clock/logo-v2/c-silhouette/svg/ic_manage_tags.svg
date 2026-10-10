@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock C — 标签</title>
+<desc id="desc">实心留白; original path geometry; monochrome, themeable.</desc>
+<path d="M4,5.2L4,5.2Q4,4 5.2,4L11.6,4Q12.8,4 13.649,4.849L20.151,11.351Q21,12.2 20.151,13.049L13.049,20.151Q12.2,21 11.351,20.151L4.849,13.649Q4,12.8 4,11.6ZM8.1,6.55a1.55,1.55 0 1 1 0,3.1a1.55,1.55 0 1 1 0,-3.1Z" fill="currentColor" fill-rule="evenodd"/>
+</svg>

@@ -1,0 +1,34 @@
+{
+  "testedWidths": [
+    1280,
+    375,
+    320,
+    812
+  ],
+  "mobile": {
+    "contentWidth": 375,
+    "navSize": "20px",
+    "overflow": false,
+    "width": 375
+  },
+  "narrow": {
+    "contentWidth": 320,
+    "overflow": false,
+    "width": 320
+  },
+  "landscape": {
+    "contentWidth": 812,
+    "overflow": false,
+    "width": 812
+  },
+  "finalViewport": {
+    "contentWidth": 375,
+    "navSize": "20px",
+    "overflow": false,
+    "width": 375
+  },
+  "themeSwitch": "passed",
+  "sizeSwitch": "20 to 32px passed",
+  "hiddenLabels": "passed",
+  "selectedNavigation": "records, aria-pressed=true and rgb(171,194,255), passed"
+}

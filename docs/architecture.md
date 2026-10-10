@@ -13,7 +13,8 @@ Room 是唯一事实来源。所有计时状态变化都经过纯 Kotlin 状态�
 - `TimerFragment` 仅处理 Android 生命周期和用户输入；显示计算由 `TimerUiStateFactory` 完成。
 - `TimerRendererController` 管理统一的圆环渲染器及其可见性和动画生命周期。
 - `TimerDisplayMetadataLoader` 隔离 UI 和底层 DAO 操作，仅向 Fragment 提供任务与分类名称。
+- `TodayProgressLoader` 计算自然日时间边界，通过索引区间流（`observeInRange`）供给今日进度，杜绝全表扫描。
 - `OpenBackupCodec` 只负责确定性编解码，`BackupValidator` 负责完整性和兼容性校验。
 
 这些边界让状态机保持纯 Kotlin、让持久化保持事务一致，并避免 Fragment 或 Receiver
-成为新的业务逻辑入口。
+成为新的业务逻辑入口。所有有界视图（如今日统计、按日报告）必须使用基于时间戳索引的范围查询，禁止将全量历史数据载入内存过滤。

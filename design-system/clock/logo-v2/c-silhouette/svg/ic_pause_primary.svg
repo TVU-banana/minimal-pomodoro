@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+<title id="title">Clock C — 暂停</title>
+<desc id="desc">实心留白; original path geometry; monochrome, themeable.</desc>
+<path d="M6.65,4.2H9.55a0.65,0.65 0 0 1 0.65,0.65V19.15a0.65,0.65 0 0 1 -0.65,0.65H6.65a0.65,0.65 0 0 1 -0.65,-0.65V4.85a0.65,0.65 0 0 1 0.65,-0.65Z" fill="currentColor"/>
+<path d="M14.45,4.2H17.35a0.65,0.65 0 0 1 0.65,0.65V19.15a0.65,0.65 0 0 1 -0.65,0.65H14.45a0.65,0.65 0 0 1 -0.65,-0.65V4.85a0.65,0.65 0 0 1 0.65,-0.65Z" fill="currentColor"/>
+</svg>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+<title id="title">Clock A — 应用图标</title>
+<desc id="desc">Full-bleed adaptive artwork. The launcher supplies its own mask.</desc>
+<path d="M0,0H108V108H0Z" fill="#315BCB"/>
+<path d="M 54,29.7 A 24.3,24.3,0,1,0,78.3,54" fill="none" stroke="#FFFFFF" stroke-width="6.075" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 54,40.905 V 54 L 64.8,60.21" fill="none" stroke="#FFFFFF" stroke-width="6.075" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 68.313,31.714 L 68.313,31.714 Q 68.175,30.78,68.842,31.447 L 76.553,39.158 Q 77.22,39.825,76.283,39.941 L 70.597,40.654 Q 69.66,40.77,69.522,39.836 Z" fill="#FFFFFF"/>
+</svg>
