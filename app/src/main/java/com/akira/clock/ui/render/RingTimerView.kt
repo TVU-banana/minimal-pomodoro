@@ -96,9 +96,13 @@ internal class RingTimerView @JvmOverloads constructor(
             centerX - diameter * 0.5f, centerY - diameter * 0.5f,
             centerX + diameter * 0.5f, centerY + diameter * 0.5f,
         )
-        canvas.drawArc(bounds, -90f, 384f, false, trackPaint)
+        canvas.drawArc(bounds, START_ANGLE_DEG, FULL_SWEEP_ANGLE_DEG, false, trackPaint)
         canvas.drawArc(
-            bounds, -90f, 384f * (state?.boundedPhaseProgress ?: 0f), false, progressPaint,
+            bounds,
+            START_ANGLE_DEG,
+            FULL_SWEEP_ANGLE_DEG * (state?.boundedPhaseProgress ?: 0f),
+            false,
+            progressPaint,
         )
         val baseline = centerY - (digitPaint.ascent() + digitPaint.descent()) * 0.5f
         canvas.drawText(timeText, centerX - digitCenterOffset, baseline, digitPaint)
@@ -109,4 +113,8 @@ internal class RingTimerView @JvmOverloads constructor(
         canvas.drawText(taskLabel, taskX, taskY, taskPaint)
     }
 
+    private companion object {
+        private const val START_ANGLE_DEG = -90f
+        private const val FULL_SWEEP_ANGLE_DEG = 360f
+    }
 }
