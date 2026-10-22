@@ -2,10 +2,12 @@
 """Reject private artifacts and identifying data without printing matched values."""
 
 import argparse
+import io
 from pathlib import Path
 import re
 import subprocess
 import sys
+import zipfile
 
 
 PATTERNS = {
@@ -27,7 +29,7 @@ def git(*args):
     return subprocess.check_output(["git", *args])
 
 
-def check(path, data):
+def check(path, data, depth=0, budget=None):
     problems = []
     name = Path(path)
     if (name.suffix in PRIVATE_SUFFIXES or name.name == "local.properties"
@@ -36,7 +38,30 @@ def check(path, data):
         problems.append("private/generated artifact")
     if b"\x00" not in data[:8000]:
         problems.extend(label for label, pattern in PATTERNS.items() if pattern.search(data))
-    return {(path, label) for label in problems}
+    findings = {(path, label) for label in problems}
+    if name.suffix.lower() == ".zip" and data:
+        if depth >= 3:
+            findings.add((path, "archive nesting limit exceeded"))
+            return findings
+        if budget is None:
+            budget = [32 * 1024 * 1024, 2000]
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                for entry in archive.infolist():
+                    if entry.is_dir():
+                        continue
+                    budget[0] -= entry.file_size
+                    budget[1] -= 1
+                    if min(budget) < 0:
+                        findings.add((path, "archive inspection budget exceeded"))
+                        break
+                    nested = path + "!/" + entry.filename
+                    if Path(entry.filename).is_absolute() or ".." in Path(entry.filename).parts:
+                        findings.add((nested, "unsafe archive path"))
+                    findings.update(check(nested, archive.read(entry), depth + 1, budget))
+        except (zipfile.BadZipFile, RuntimeError, NotImplementedError, OSError):
+            findings.add((path, "unreadable archive"))
+    return findings
 
 
 def main():

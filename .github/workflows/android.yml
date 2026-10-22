@@ -21,7 +21,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Check private artifacts and commit identities
-        run: python3 scripts/check-repository.py --history
+        run: |
+          python3 -m unittest discover -s scripts/tests
+          python3 scripts/check-repository.py --history
       - name: Scan secrets with verified Gitleaks
         shell: bash
         run: |
