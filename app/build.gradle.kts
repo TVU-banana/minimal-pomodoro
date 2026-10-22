@@ -5,11 +5,31 @@ plugins {
 }
 
 val bandSdkEnabled = providers.gradleProperty("bandSdk").orNull == "true"
+val signingEnvironment = listOf(
+    "CLOCK_KEYSTORE_FILE",
+    "CLOCK_KEYSTORE_PASSWORD",
+    "CLOCK_KEY_ALIAS",
+    "CLOCK_KEY_PASSWORD",
+).associateWith { providers.environmentVariable(it).orNull }
+val releaseSigningEnabled = signingEnvironment.values.all { !it.isNullOrBlank() }
+require(signingEnvironment.values.all { it == null } || releaseSigningEnabled) {
+    "Set all four CLOCK signing environment variables, or leave all unset for an unsigned build."
+}
 
 android {
     namespace = "com.akira.clock"
     compileSdk = 37
 
+    if (releaseSigningEnabled) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(signingEnvironment.getValue("CLOCK_KEYSTORE_FILE")!!)
+                storePassword = signingEnvironment.getValue("CLOCK_KEYSTORE_PASSWORD")
+                keyAlias = signingEnvironment.getValue("CLOCK_KEY_ALIAS")
+                keyPassword = signingEnvironment.getValue("CLOCK_KEY_PASSWORD")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.akira.clock"
@@ -28,6 +48,9 @@ android {
 
     buildTypes {
         release {
+            if (releaseSigningEnabled) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

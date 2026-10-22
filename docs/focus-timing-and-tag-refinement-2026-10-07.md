@@ -20,7 +20,7 @@
   103 warnings。未执行可能卸载手机应用的 connected instrumentation 测试。
 - 新增覆盖 5 分钟预热 + 完整 60 分钟正式专注、暂停恢复、预热长于正式专注、
   stopwatch 限制以及跨小时 FOCUS segments 分布的回归测试。
-- RMX3562（<device-serial>）使用 `adb install -r` 覆盖安装成功。
+- RMX3562使用 `adb install -r` 覆盖安装成功。
 - 手机正在运行计时，测试未暂停、结束、修改该计时。真机仅浏览设置、记录页面，最后
   返回计时页面。编辑弹窗在只读 Pixel_10_Pro 模拟器检查，模拟器随后关闭且不保存状态。
 - 真机设置页首项 y=144，内容区起点 y=96，相差 48px（16dp）。模拟器中时间块名称、

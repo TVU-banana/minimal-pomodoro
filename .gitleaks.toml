@@ -1,0 +1,10 @@
+title = "Clock secret detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "literal-signing-password"
+description = "Android signing credentials must come from the environment"
+regex = '''(?i)(?:storePassword|keyPassword|KEYSTORE_PASSWORD|KEY_PASSWORD)\s*=\s*["']([^"'$\r\n]+)["']'''
+secretGroup = 1

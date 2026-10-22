@@ -45,7 +45,7 @@ the local emulator. Physical-device interaction acceptance remains with the user
 ## Authorized phone deployment
 
 After the user requested deployment with historical statistics preserved, the APK was installed
-on RMX3562 (`<device-serial>`) using `adb install -r`. Installation succeeded, and MainActivity
+on RMX3562 using `adb install -r`. Installation succeeded, and MainActivity
 launched with `Status: ok`. No uninstall, data clear, import, restore, or record-edit operation ran.
 
 - The installed APK SHA-256 matches the local build:
